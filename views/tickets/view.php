@@ -15,15 +15,10 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <h1><?= Html::encode($this->title) ?></h1>
 
+    <?= Html::a('Torna al ticket assegnati',['assegnazioni/index']) ?>
     <p>
-        <?= Html::a('Update', ['update', 'id' => $model->id], ['class' => 'btn btn-primary']) ?>
-        <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-            'class' => 'btn btn-danger',
-            'data' => [
-                'confirm' => 'Sei sicuro di voler eliminare dodesto ticket?',
-                'method' => 'post',
-            ],
-        ]) ?>
+        
+        
     </p>
 
     <?php if(Yii::$app->user->identity->ruolo=='cliente'):?>
@@ -33,7 +28,7 @@ $this->params['breadcrumbs'][] = $this->title;
         'attributes' => [
             'id',
             'problema',
-            'ambito',
+            'reparto',
             'codice_ticket',
             'stato',
             'data_invio',
@@ -48,7 +43,7 @@ $this->params['breadcrumbs'][] = $this->title;
         'attributes' => [
             'id',
             'problema',
-            'ambito',
+            'reparto',
             'codice_ticket',
             'stato',
             'scadenza',

@@ -30,7 +30,7 @@ class TicketsController extends Controller
             'only' => [
                 'ritiro',
                 'modify-ticket','reintegra','my-ticket','new-ticket','resolve','my-reparto',
-                'my-reparto-open','resolve','my-reparto-open'
+                'my-reparto-open','resolve','my-reparto-open','index'
             ],
             'rules' => [
 
@@ -56,7 +56,7 @@ class TicketsController extends Controller
                 [
                     'allow' => true,
                     'actions' => ['new-ticket','my-ticket','delete-ticket','modify-ticket',
-                    'index','view','update','delete','findModel','open','scadence','resolve',
+                    'view','update','delete','findModel','open','scadence','resolve',
                     'close','lavorazione','my-account','my-reparto-open'],
                     'roles' => ['@'],
                     'matchCallback' => function () {
@@ -76,7 +76,7 @@ class TicketsController extends Controller
                 // 3️⃣ AMMINISTRATORE
                 [
                     'allow' => true,
-                    'actions' => ['reintegra','ritiro','new-ticket','my-ticket','delete-ticket','modify-ticket','index','view','update','delete','findModel','open','scadence','close','lavorazione','my-account'],
+                    'actions' => ['index','reintegra','ritiro','new-ticket','my-ticket','delete-ticket','modify-ticket','index','view','update','delete','findModel','open','scadence','close','lavorazione','my-account'],
                     'roles' => ['@'],
                     'matchCallback' => function () {
                         $approvazione=Yii::$app->user->identity->approvazione;
@@ -91,8 +91,7 @@ class TicketsController extends Controller
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'delete-ticket' => ['POST'],
-                'reintegra' => ['POST'],
-                'ritiro' => ['POST'],
+               
                 'resolve' => ['GET'],
             ],
         ],
