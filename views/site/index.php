@@ -1,10 +1,10 @@
 <?php
 use yii\helpers\Html;
 use yii\helpers\Url;
+use app\models\Ticket;
 
 /** @var app\models\User $user */
 /** @var int $countTicket */
-use app\models\Ticket;
 /** @var string|null $stato */
 /** @var app\models\Ticket|null $ultimoTicket */
 
@@ -12,9 +12,6 @@ $ruolo = $user->ruolo;
 $nome  = Yii::$app->user->identity->nome;
 $stato = $stato ?? '—';
 ?>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
 <div class="dashboard-container">
 
@@ -42,7 +39,7 @@ $stato = $stato ?? '—';
 
         <?php if ($ruolo === 'cliente'): ?>
 
-            <div class="stat-card" onclick="window.location.href='<?= Url::to(['site/contact']) ?>'">
+            <div class="stat-card clickable" onclick="window.location.href='<?= Url::to(['site/contact']) ?>'">
                 <div class="stat-icon blue"><i class="fas fa-phone"></i></div>
                 <div class="stat-info">
                     <h3>Contattaci</h3>
@@ -51,7 +48,7 @@ $stato = $stato ?? '—';
             </div>
 
             <?php if ($countTicket > 0 && isset($ultimoTicket)): ?>
-                <div class="stat-card" data-bs-toggle="modal" data-bs-target="#ticketModal">
+                <div class="stat-card clickable" data-bs-toggle="modal" data-bs-target="#ticketModal">
                     <div class="stat-icon green"><i class="fas fa-flag"></i></div>
                     <div class="stat-info">
                         <h3><?= Html::encode($stato) ?></h3>
@@ -62,7 +59,7 @@ $stato = $stato ?? '—';
 
         <?php elseif (in_array($ruolo, ['developer', 'ict'])): ?>
 
-            <div class="stat-card clickable" onclick="window.location.href='<?= Url::to(['ticket/my-ticket']) ?>'">
+            <div class="stat-card clickable" onclick="window.location.href='<?= Url::to(['assegnazioni/my-ticket']) ?>'">
                 <div class="stat-icon green"><i class="fas fa-ticket-alt"></i></div>
                 <div class="stat-info">
                     <h3>Ticket</h3>
@@ -79,8 +76,9 @@ $stato = $stato ?? '—';
             </div>
 
         <?php elseif ($ruolo === 'amministratore'): ?>
-            <?php $countTicket=Ticket::find()->count()?>
-            <div class="stat-card clickable" onclick="window.location.href='<?= Url::to(['admin/ticketing']) ?>'">
+            <?php $countTicket = Ticket::find()->count(); ?>
+
+            <div class="stat-card clickable" onclick="window.location.href='<?= Url::to(['admin/index']) ?>'">
                 <div class="stat-icon blue"><i class="fas fa-ticket-alt"></i></div>
                 <div class="stat-info">
                     <h3><?= (int)$countTicket ?></h3>
@@ -96,24 +94,41 @@ $stato = $stato ?? '—';
     <?php if (in_array($ruolo, ['cliente', 'amministratore'])): ?>
         <div class="actions-grid">
 
-            <div class="action-card" onclick="window.location.href='<?= Url::to(['ticket/new-ticket']) ?>'">
+            <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['ticket/new-ticket']) ?>'">
                 <h2>Nuova richiesta di assistenza</h2>
                 <p>Apri un ticket e ricevi supporto dal nostro team.</p>
                 <?= Html::a('Apri ticket', ['ticket/new-ticket'], ['class' => 'btn-primary']) ?>
             </div>
 
             <?php if ($ruolo === 'cliente'): ?>
-                <div class="action-card" onclick="window.location.href='<?= Url::to(['ticket/my-ticket']) ?>'">
+                <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['ticket/my-ticket']) ?>'">
                     <h2>I tuoi ticket</h2>
                     <p>Consulta lo stato delle richieste inviate.</p>
                 </div>
             <?php endif; ?>
 
             <?php if ($ruolo === 'amministratore'): ?>
-                <div class="action-card" onclick="window.location.href='<?= Url::to(['admin/open']) ?>'">
+
+                <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['tickets/open']) ?>'">
                     <h2>Ticket aperti</h2>
                     <p>Visualizza e gestisci i ticket in attesa.</p>
                 </div>
+
+                <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['tickets/lavorazione']) ?>'">
+                    <h2>Ticket in lavorazione</h2>
+                    <p>Visualizza e gestisci i ticket in lavorazione.</p>
+                </div>
+
+                <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['tickets/close']) ?>'">
+                    <h2>Ticket chiusi</h2>
+                    <p>Visualizza e gestisci i ticket chiusi.</p>
+                </div>
+
+                           <div class="action-card clickable" onclick="window.location.href='<?= Url::to(['tickets/scadence']) ?>'">
+                    <h2>Ticket scaduti</h2>
+                    <p>Visualizza e gestisci i ticket scaduti.</p>
+                </div>
+
             <?php endif; ?>
 
         </div>
@@ -121,59 +136,59 @@ $stato = $stato ?? '—';
 
 </div>
 
-<?php if ($countTicket > 0 && isset($ultimoTicket)): ?>
-<div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Stato ultimo ticket</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <p>Id: <strong><?= Html::encode($ultimoTicket->id) ?></strong></p>
-        <p>Problema: <strong><?= Html::encode($ultimoTicket->problema) ?></strong></p>
-        <p>Stato: <strong><?= Html::encode($ultimoTicket->stato) ?></strong></p>
-        <p>Codice ticket: <strong><?= Html::encode($ultimoTicket->codice_ticket) ?></strong></p>
-        <p>Data invio: <strong><?= Html::encode($ultimoTicket->data_invio) ?></strong></p>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
-      </div>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
-
 <style>
+    /* PALETTE AZIENDALE */
+:root {
+    --primary: #0b3c5d;
+    --primary-dark: #062f4f;
+    --accent: #2e8b57;
+    --text-dark: #2c3e50;
+    --text-light: #6c757d;
+    --bg-light: #f5f7fa;
+    --card-bg: #ffffff;
+    --shadow: 0 4px 14px rgba(0,0,0,0.08);
+    --shadow-hover: 0 6px 20px rgba(0,0,0,0.15);
+    --radius: 12px;
+    --transition: .25s ease;
+}
+
+/* CONTAINER */
 .dashboard-container {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 10px;
 }
 
 /* HERO */
 .hero-box {
-    background: linear-gradient(135deg, #0b3c5d, #062f4f);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #fff;
     padding: 40px;
-    border-radius: 14px;
+    border-radius: var(--radius);
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
-    box-shadow: 0 6px 22px rgba(0,0,0,.15);
+    box-shadow: var(--shadow);
     cursor: pointer;
+    transition: var(--transition);
+}
+
+.hero-box:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-3px);
 }
 
 .hero-left h1 {
     font-size: 32px;
     font-weight: 700;
+    margin: 0;
 }
 
 .hero-left p {
     margin-top: 8px;
     opacity: .9;
+    font-size: 16px;
 }
 
 .hero-right i {
@@ -190,55 +205,67 @@ $stato = $stato ?? '—';
     margin-bottom: 35px;
 }
 
-/* CARDS */
+/* CARD BASE */
 .stat-card,
 .action-card {
-    background: #fff;
+    background: var(--card-bg);
     padding: 28px;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.08);
-    transition: transform .25s ease, box-shadow .25s ease;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    border: 1px solid #e6e9ec;
 }
 
-.stat-card.clickable,
-.action-card {
-    cursor: pointer;
-}
-
-/* SOLO LE CARD SI ALZANO */
 .stat-card:hover,
 .action-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 22px rgba(0,0,0,.18);
+    box-shadow: var(--shadow-hover);
 }
 
+/* ICONA */
 .stat-icon {
     width: 60px;
     height: 60px;
-    border-radius: 12px;
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-size: 26px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
-.stat-icon.blue { background: #0b3c5d; }
-.stat-icon.green { background: #2e8b57; }
+.stat-icon.blue { background: var(--primary); }
+.stat-icon.green { background: var(--accent); }
 
+/* TESTI */
 .stat-info h3 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     margin: 0;
+    color: var(--text-dark);
 }
 
 .stat-info p {
-    color: #555;
+    color: var(--text-light);
     margin: 0;
+    font-size: 15px;
 }
 
-/* BUTTONS */
+/* ACTION CARD */
+.action-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+}
+
+.action-card p {
+    color: var(--text-light);
+    margin-bottom: 15px;
+}
+
+/* BUTTON */
 .btn-primary {
     display: inline-block;
     padding: 10px 18px;
@@ -246,15 +273,17 @@ $stato = $stato ?? '—';
     color: #fff;
     font-weight: 600;
     text-decoration: none;
-    background: #0b3c5d;
+    background: var(--primary);
     border: none;
+    transition: var(--transition);
 }
 
 .btn-primary:hover {
-    background: #062f4f;
+    background: var(--primary-dark);
     color: #fff;
 }
 
+/* RESPONSIVE */
 @media (max-width: 768px) {
     .hero-box {
         flex-direction: column;
@@ -264,4 +293,5 @@ $stato = $stato ?? '—';
         margin-top: 20px;
     }
 }
+
 </style>

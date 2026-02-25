@@ -27,7 +27,9 @@ class m260128_095636_table_admin extends Migration
                 'azienda'=>$this->string(),
                 'recapito_telefonico'=>$this->string(),
                 'token'=>$this->string(),
-                'immagine'=>$this->string()
+                'immagine'=>$this->string(),
+                'totp_secret'=>$this->string(),
+                'is_totp_enabled'=>$this->boolean()
             ]
         );
     }

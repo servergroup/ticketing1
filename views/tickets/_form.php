@@ -20,11 +20,14 @@ use yii\widgets\ActiveForm;
 
     <?= $form->field($model, 'stato')->textInput(['maxlength' => true]) ?>
 
-    <?= $form->field($model, 'scadenza')->textInput() ?>
+    <?php if(Yii::$app->user->identity->ruolo=='amministratore'):?>
+         <?= $form->field($model, 'scadenza')->textInput() ?>
+    
+        <?php endif;?>
+    
+       
 
-    <?= $form->field($model, 'data_invio')->textInput() ?>
 
-    <?= $form->field($model, 'id_cliente')->textInput() ?>
 
     <?= $form->field($model, 'priorita')->textInput(['maxlength' => true]) ?>
 

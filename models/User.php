@@ -20,10 +20,10 @@ class User extends ActiveRecord implements IdentityInterface
             ['username', 'unique'],
             ['email', 'email'],
 
-            [['approvazione', 'blocco'], 'boolean'],
+            [['approvazione', 'blocco','is_totp_enabled'], 'boolean'],
             ['tentativi', 'integer'],
 
-            [['partita_iva', 'recapito_telefonico', 'azienda','token'], 'string'],
+            [['partita_iva', 'recapito_telefonico', 'azienda','token','totp_secret'], 'string'],
 
             [
                 'immagine',

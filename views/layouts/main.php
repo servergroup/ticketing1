@@ -98,7 +98,7 @@ header("Pragma: no-cache");
  
 
     <!-- SIDEBAR -->
-    <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->approvazione): ?>
+    <?php if (!Yii::$app->user->isGuest ): ?>
         <?= $this->render('@app/views/layouts/sidebar.php', [
             'assetDir' => $assetDir
         ]) ?>
@@ -125,6 +125,14 @@ header("Pragma: no-cache");
 </div>
 
 <?php $this->endBody() ?>
+<?php
+$this->registerJsFile(
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
+    ['depends' => [\yii\web\JqueryAsset::class]]
+);
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
 <?php $this->endPage() ?>

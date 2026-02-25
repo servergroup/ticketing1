@@ -1,222 +1,128 @@
 <?php
+use yii\widgets\DetailView;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
-/** @var yii\web\View $this */
-/** @var app\models\User $account */
+use app\models\User;
+
+$user=User::findOne(Yii::$app->user->identity->id);
+/* @var $this yii\web\View */
+/* @var $account app\models\User */
+
+$imageUrl = $account->immagine
+    ? Yii::getAlias('@web/uploads/' . $account->immagine)
+    : Yii::getAlias('@web/img/avatar-placeholder.png');
 ?>
 
-<style>
-/* CONTAINER */
-.account-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 25px;
-    background: #ffffff;
-    border-radius: 18px;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
-    font-family: "Inter", Arial, sans-serif;
-}
+<h1 style="text-align:center;margin-top:10px; margin-bottom:50px;">Il mio account</h1>
 
-/* FOTO PROFILO */
-.profile-pic-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
+<?php $form = ActiveForm::begin([
+    'action' => ['site/modify-image'],
+    'options' => ['enctype' => 'multipart/form-data', 'id' => 'form-image'],
+]); ?>
 
-.profile-pic-label {
-    cursor: pointer;
-    position: relative;
-    display: inline-block;
-}
+<?= DetailView::widget([
+    'model' => $account,
+    'options' => ['class' => 'table table-bordered'],
+    'attributes' => [
+        [
+         'label'=>'',   
+            'format' => 'raw',
+            'value' => function($model) use ($imageUrl) {
+                return Html::tag('div',
+                    Html::img($imageUrl, ['class' => 'profile-pic', 'alt' => Html::encode($model->nome . ' ' . $model->cognome)]),
+                    ['class' => 'profile-pic-wrapper']
+                );
+            },
+            'contentOptions' => ['style' => 'text-align:center;'],
+        ],
+        [
+            'attribute' => 'nome',
+            'label' => 'Nome',
+            'format' => 'text',
+            'value' => function($m){ return Html::encode($m->nome); },
+            'contentOptions' => ['style' => 'text-align:center;'],
+        ],
+        [
+            'attribute' => 'cognome',
+            'label' => 'Cognome',
+            'format' => 'text',
+            'value' => function($m){ return Html::encode($m->cognome); },
+            'contentOptions' => ['style' => 'text-align:center;'],
+        ],
+        [
+            'attribute' => 'email',
+            'label' => 'Email',
+            'format' => 'email',
+            'value' => function($m){ return Html::encode($m->email); },
+            'contentOptions' => ['style' => 'text-align:center;'],
+        ],
+        [
+            'attribute' => 'ruolo',
+            'label' => 'Ruolo',
+            'format' => 'text',
+            'value' => function($m){ return Html::encode($m->ruolo); },
+            'contentOptions' => ['style' => 'text-align:center;'],
+        ],
+        [
+            'attribute' => 'partita_iva',
+            'label' => 'Partita IVA',
+            'format' => 'text',
+            'value' => function($m){ return Html::encode($m->partita_iva); },
+            'contentOptions' => ['style' => 'text-align:center;'],
+            'visible' => (Yii::$app->user->identity->ruolo === 'cliente'),
+        ],
+    ],
+]) ?>
 
-/* IMMAGINE PROFILO */
-.profile-pic {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #e5e7eb;
-    background: #f3f4f6;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    transition: 0.3s ease;
-}
+    <!-- input file nascosto collegato al form ActiveForm -->
+    <?= $form->field($account, 'immagine')->fileInput([
+        'accept' => 'image/*',
+        'id' => 'upload-img',
+        'style' => 'display:none'
+    ])->label(false) ?>
 
-/* HOVER */
-.profile-pic-label:hover .profile-pic {
-    transform: scale(1.03);
-    opacity: 0.85;
-}
-
-/* OVERLAY "MODIFICA" */
-.edit-overlay {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: rgba(0,0,0,0.55);
-    color: white;
-    text-align: center;
-    padding: 8px 0;
-    border-radius: 0 0 50% 50%;
-    font-size: 14px;
-    opacity: 0;
-    transition: 0.3s ease;
-}
-
-.profile-pic-label:hover .edit-overlay {
-    opacity: 1;
-}
-
-/* PLACEHOLDER QUANDO NON C’È IMMAGINE */
-.profile-pic.placeholder {
-    background: linear-gradient(135deg, #d1d5db, #9ca3af);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 48px;
-    color: white;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-/* CARD */
-.ticket-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    background: #ffffff;
-    transition: all .2s ease;
-    margin-top: 20px;
-}
-
-.ticket-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    transform: translateY(-3px);
-}
-
-/* TABELLA */
-.table th {
-    width: 30%;
-    background: #f3f4f6;
-    font-weight: 600;
-}
-
-.table td {
-    background: #ffffff;
-}
-
-/* BOTTONI */
-.btn-primary {
-    margin: 6px 0;
-    width: 100%;
-    border-radius: 10px;
-    padding: 10px;
-}
-
-/* RESPONSIVE */
-@media (max-width: 480px) {
-    .account-container {
-        padding: 15px;
-        box-shadow: none;
-    }
-    .profile-pic {
-        width: 120px;
-        height: 120px;
-    }
-}
-
-</style>
-
-<div class="account-container">
-
-    <!-- FOTO PROFILO MODIFICABILE -->
-    <div class="profile-pic-wrapper">
-        <label for="upload-img" class="profile-pic-label">
-            <img id="preview-img"
-                 src="<?= Yii::getAlias('@web/uploads/' . $account->immagine) ?>"
-                 alt="Foto profilo"
-                 class="profile-pic">
-
-            <div class="edit-overlay">Modifica</div>
-        </label>
-    </div>
-
-    <h1>Il mio account</h1>
-    <p>Qui vedrai le informazioni relative al tuo account</p>
-
-    <div class="ticket-card p-4">
-
-             <!-- FORM PER MODIFICARE L'IMMAGINE -->
-            <?php $form = ActiveForm::begin([
-                'action' => ['site/modify-image'],
-                'options' => ['enctype' => 'multipart/form-data']
-            ]); ?>
-
-
-            <?= $form->field($account, 'immagine')->fileInput([
-                'accept' => 'image/*',
-                'id' => 'upload-img',
-                'style' => 'display:none'
-            ]) ?>
-
-          <?= Html::submitButton('Modifica immagine',['class'=>'btn btn-primary']) ?>
-
-            <?php ActiveForm::end(); ?>
-        <table class="table table-bordered">
-            <tr>
+    <div class="mt-3 text-center">
+        <!-- Bottone che apre il selettore file -->
+        <?= Html::button('Modifica immagine', [
+            'class' => 'btn btn-primary me-2',
+            'id' => 'btn-change-image',
+            'type' => 'button'
+        ]) ?>
 
         
-                <th>Nome</th>
-                <td><?= Html::encode($account->nome) ?></td>
-            </tr>
-
-            <tr>
-                <th>Cognome</th>
-                <td><?= Html::encode($account->cognome) ?></td>
-            </tr>
-
-            <tr>
-                <th>Email</th>
-                <td><?= Html::encode($account->email) ?></td>
-            </tr>
-
-            <tr>
-                <th>Ruolo</th>
-                <td><?= Html::encode($account->ruolo) ?></td>
-            </tr>
-
-            <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
-            <tr>
-                <th>Partita IVA</th>
-                <td><?= Html::encode($account->partita_iva) ?></td>
-            </tr>
-            <?php endif; ?>
-        </table>
-
-        <div class="mt-3 text-center">
-
-            <!-- Modifica email -->
-            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'btn btn-primary']) ?>
-
-            <!-- Modifica password -->
-            <?= Html::a('Modifica password', ['site/mail'], ['class' => 'btn btn-primary']) ?>
-
-            <!-- Modifica partita IVA SOLO SE CLIENTE -->
-            <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
-                <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'btn btn-primary']) ?>
-            <?php endif; ?>
-
-       
-
-        </div>
-
+        <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'btn btn-outline-primary me-2']) ?>
+        <?= Html::a('Modifica password', ['site/mail'], ['class' => 'btn btn-outline-primary']) ?>
+        <?php if(!$user->is_totp_enabled):?>
+        <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'btn btn-warning']) ?>
+        <?php else: ?>
+            <?= Html::a('Disattiva 2FA', ['site/disable-2fa'], ['class' => 'btn btn-warning']) ?>
+<?php endif; ?>
+        <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
+            <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'btn btn-outline-secondary ms-2']) ?>
+        <?php endif; ?>
     </div>
 
-</div>
+<?php ActiveForm::end(); ?>
+        
 
+<!-- JS: apre file dialog e invia il form automaticamente dopo la selezione -->
 <script>
-/* ANTEPRIMA IMMEDIATA DELL'IMMAGINE */
-document.getElementById('upload-img').addEventListener('change', function(event) {
-    const img = document.getElementById('preview-img');
-    img.src = URL.createObjectURL(event.target.files[0]);
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('btn-change-image');
+    const fileInput = document.getElementById('upload-img');
+    const form = document.getElementById('form-image');
+
+    if (!btn || !fileInput || !form) return;
+
+    btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length > 0) {
+            form.submit();
+        }
+    });
 });
 </script>

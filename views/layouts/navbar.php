@@ -45,11 +45,7 @@ $this->title = '';
         <?php endif; ?>
     <?php endif; ?>
 
-    <?= Html::a(
-        '<img src="'.Yii::getAlias('@web/img/logout.png').'" style="width:50px;">',
-        ['site/logout'],
-        ['class' => 'logout']
-    ) ?>
+ 
 
 <?php endif; ?>
 

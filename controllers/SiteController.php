@@ -12,33 +12,33 @@ use app\models\ContactForm;
 use app\models\userService;
 use app\models\Assegnazioni;
 use app\eccezioni\existUserException;
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
+use RobThree\Auth\Algorithm;
+
+
 use app\eccezioni\tentativiSuperati;
 use app\models\User;
 use app\models\Ticket;
-use app\models\ticketFunction;
 use app\models\Turni;
 use app\models\Mail;
+use app\models\ticketFunctions;
 use Exception;
 
 class SiteController extends Controller
 {
-    /**
-     * {@inheritdoc}
-     */
     public function behaviors()
     {
         return [
-            'access' => [
+            'access' =>
+            [
                 'class' => AccessControl::class,
-                'only' => ['index','contact','attesa','account','modify-username','recovery-mail','reset','modify-iva','modify-image','modify-email','salta-pausa'],
+                'only' => ['index', 'contact', 'attesa', 'account', 'modify-username', 'recovery-mail', 'reset', 'modify-iva', 'modify-image', 'modify-email', 'salta-pausa'],
                 'rules' => [
                     [
-                        'actions' => ['index','contact', 'logout','index','contact','mail','recupero-password','attesa','account','modify-username','recovery-mail','reset','modify-iva','modify-image','modify-email'],
+                        'actions' => ['index', 'contact', 'logout', 'mail', 'recupero-password', 'attesa', 'account', 'modify-username', 'recovery-mail', 'reset', 'modify-iva', 'modify-image', 'modify-email'],
                         'allow' => true,
                         'roles' => ['@'],
-
-
-
                     ],
                 ],
             ],
@@ -48,142 +48,175 @@ class SiteController extends Controller
             ],
         ];
     }
-
-    /**
-     * {@inheritdoc}
-     */
     public function actions()
     {
         return [
-            'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
+            'error' => ['class' => 'yii\web\ErrorAction'],
             'captcha' => [
                 'class' => 'yii\captcha\CaptchaAction',
                 'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
             ],
         ];
     }
-
-    /**
-     * Displays homepage.
-     *
-     * @return string
-     */
-
-
-
-
-public function actionIndex()
-{
-   $user=User::findOne(['username'=>Yii::$app->user->identity->username]);
-// Ticket dell’utente
-$ticket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->all();
-$assegnazioni = Assegnazioni::find()->all();
-// Conteggio corretto dei ticket dell’utente
-$countTicket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->count();
-
-$function=new ticketFunction();
-
-$function->ticketScaduto();
-// Ultimo ticket dell’utente
-$ultimoTicket = Ticket::find()
-    ->where(['id_cliente' => Yii::$app->user->identity->id])
-    ->orderBy(['data_invio' => SORT_DESC])
-    ->one();
-
-    if(!$user->approvazione){
-        Yii::$app->session->setFlash('info','Attendere l\'approvazione da parte di uno dei nostri amministratori');
-     return $this->redirect(['attesa']);  
+    public function actionIndex()
+    {
+        $user = User::findOne(['username' => Yii::$app->user->identity->username]);
+        $ticket = Ticket::find()->where(['id_cliente' => $user->id])->all();
+        $assegnazioni = Assegnazioni::find()->all();
+        $countTicket = Ticket::find()->where(['id_cliente' => $user->id])->count();
+        $function = new ticketFunctions();
+        $function->ticketScaduto();
+        $ultimoTicket = Ticket::find()->where(['id_cliente' => $user->id])->orderBy(['data_invio' => SORT_DESC])->one();
+        if (!$user->approvazione) {
+            Yii::$app->session->setFlash('info', 'Attendere l\'approvazione da parte di un amministratore');
+            return $this->redirect(['attesa']);
+        }
+        return $this->render('index', [
+            'user' => $user,
+            'ticket' => $ticket,
+            'countTicket' => $countTicket,
+            'ultimoTicket' => $ultimoTicket,
+            'assegnazioni' => $assegnazioni,
+        ]);
     }
-return $this->render('index', [
-    'user' => $user,
-    'ticket' => $ticket,
-    'countTicket' => $countTicket,
-    'ultimoTicket' => $ultimoTicket,
-    'assegnazioni'=>$assegnazioni,
-    
-]);
-}
-
-
-    /**
-     * Login action.
-     *
-     * @return Response|string
-     */
     public function actionLogin()
     {
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
-
         $model = new LoginForm();
         $function = new userService();
-        $register=new User();
-
+        $register = new User();
         if ($model->load(Yii::$app->request->post())) {
-
-            try{
-
-            if ($model->verifyBlocco($model->username)) {
-               throw new tentativiSuperati('A causa della superazione del limite dei tentativi massimi di accesso è \' stato applicato il blocco antiAccesso');
-               
-            }
-
-    
-
-         
-            if ($model->login()) {
-                
-                if (Yii::$app->user->identity->ruolo == 'amministratore') {
-                    return $this->redirect(['attesa']);
-                } else if (Yii::$app->user->identity->ruolo == 'developer') {
-                   
-                    return $this->redirect(['attesa']);
-                } else if (Yii::$app->user->identity->ruolo == 'itc') {
-                   return $this->redirect(['attesa']);
-                } else if (Yii::$app->user->identity->ruolo == 'cliente') {
-                    return $this->redirect(['index']);
+            try {
+                if ($model->verifyBlocco($model->username)) {
+                    throw new tentativiSuperati('Troppi tentativi: attivato blocco anti-accesso');
                 }
-                //return $this->redirect(['index']);
-            }else{
-              
-            Yii::$app->session->setFlash('error', 'Credenziali errate');
-           
+                if ($model->login()) {
+                    $user = Yii::$app->user->identity;
+                    // 🔐 SE L’UTENTE HA LA 2FA ATTIVA → BLOCCO LOGIN E PASSO ALLA VERIFICA 
+                    if ($user->is_totp_enabled) {
+                        Yii::$app->user->logout(false);
+                        Yii::$app->session->set('pending_user_id', $user->id);
+                        return $this->redirect(['verify-2fa']);
+                    } // 🔓 LOGIN NORMALE 
+                    if (in_array($user->ruolo, ['amministratore', 'developer', 'itc'])) {
+                        return $this->redirect(['attesa']);
+                    }
+                    if ($user->ruolo == 'cliente') {
+                        return $this->redirect(['index']);
+                    }
+                } else {
+                    Yii::$app->session->setFlash('error', 'Credenziali errate');
+                }
+                $model->password = '';
+                return $this->render('login', ['model' => $model]);
+            } catch (tentativiSuperati $e) {
+                Yii::$app->session->setFlash('error', 'Troppi tentativi: blocco attivato');
             }
-            $model->password = '';
-           
-            return $this->render('login', ['model' => $model]);
-     
-           }catch(tentativiSuperati $e){
-            Yii::$app->session->setFlash('error','A causa dei tentativi di accesso superati e \' stato attivato il blocco antiAccesso');
         }
-
+        return $this->render('login', ['model' => $model, 'register' => $register,]);
     }
+    public function actionVerify2fa()
+    {
+        $userId = Yii::$app->session->get('pending_user_id');
+        if (!$userId) {
+            return $this->redirect(['login']);
+        }
+        $user = User::findOne($userId);
+        $model = new \yii\base\DynamicModel(['code']);
+        $model->addRule('code', 'required');
+        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
+            $provider = new BaconQrCodeProvider();
+           $tfa=new TwoFactorAuth($provider, 'Dataseed', 6, 30, Algorithm::Sha1);
 
-        return $this->render('login', [
-            'model' => $model,
-            'register'=>$register,
-        ]);
+          if ($tfa->verifyCode($user->totp_secret, $model->code)) {
 
+    // Attiva la 2FA definitivamente
+    $user->is_totp_enabled = 1;
+    $user->save(false);
+
+    // Rimuove la sessione temporanea
+    Yii::$app->session->remove('pending_user_id');
+
+    // Login dell’utente
+    Yii::$app->user->login($user);
+
+    return $this->goHome();
+}
+
+            $model->addError('code', 'Codice non valido');
+        }
+        return $this->render('verify-2fa', ['model' => $model]);
     }
-
-
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
     public function actionLogout()
     {
-       $function=new userService();
-
-       $function->fuoriServizio();
+        $function = new userService();
+        $function->fuoriServizio();
         Yii::$app->user->logout();
-
         return $this->goHome();
     }
+
+    public function actionDisable2fa()
+    {
+        $function=new userService();
+
+        if($function->disattiva2fa()){
+            Yii::$app->session->setFlash('success','Autenticazione a due fattori disattivata correttamente');
+            return $this->redirect(['index']);
+        }else{
+             Yii::$app->session->setFlash('error','Autenticazione a due fattori non disattivata correttamente');
+            return $this->redirect(['index']);
+        }
+    }
+
+
+   public function actionEnable2fa()
+{
+    if (Yii::$app->user->isGuest) {
+        Yii::$app->session->setFlash('error', 'Devi effettuare il login per attivare la 2FA.');
+        return $this->redirect(['login']);
+    }
+
+    $user = User::findOne(Yii::$app->user->id);
+
+    if (!$user) {
+        Yii::$app->session->setFlash('error', 'Utente non trovato.');
+        return $this->redirect(['login']);
+    }
+
+    // Provider QR
+    $provider = new BaconQrCodeProvider();
+
+    // TwoFactorAuth con costruttore corretto
+    $tfa = new TwoFactorAuth(
+        $provider,
+        'NomeApp',
+        6,
+        30,
+        Algorithm::Sha1
+    );
+
+    // Genera segreto se non esiste
+    if (!$user->totp_secret) {
+        $user->totp_secret = $tfa->createSecret();
+      
+        if($user->totp_secret)
+            $user->is_totp_enabled=1;
+        $user->save();
+    }
+
+    // Genera QR code
+    $qrCode = $tfa->getQRCodeImageAsDataUri($user->email, $user->totp_secret);
+
+    return $this->render('enable-2fa', [
+        'user' => $user,
+        'qrCode' => $qrCode,
+    ]);
+}
+
+
+
 
     /**
      * Displays contact page.
@@ -192,22 +225,22 @@ return $this->render('index', [
      */
     public function actionContact()
     {
-         
+
         $model = new ContactForm();
-        
-        
+
+
         if ($model->load(Yii::$app->request->post()) && $model->contact()) {
             Yii::$app->session->setFlash('contactFormSubmitted');
 
-            return $this->refresh(); 
+            return $this->refresh();
         }
         return $this->render('contact', [
             'model' => $model,
-          
+
         ]);
     }
 
-    
+
 
 
     /**
@@ -240,29 +273,29 @@ return $this->render('index', [
         return $this->render('recuperoMail', ['user' => $user]);
     }
 
-   public function actionRecuperoPassword($token)
-{
-    $user = User::findOne(['token' => $token]);
-    $function=new userService();
-    if (!$user) {
-        Yii::$app->session->setFlash('error', 'Token non valido o scaduto.');
-        return $this->redirect(['site/login']);
-    }
-
-    if (Yii::$app->request->isPost) {
-        $password = Yii::$app->request->post('User')['password'];
-
-        if ($function->modifyPassword($password, $token)) {
-            Yii::$app->session->setFlash('success', 'Password modificata con successo.');
+    public function actionRecuperoPassword($token)
+    {
+        $user = User::findOne(['token' => $token]);
+        $function = new userService();
+        if (!$user) {
+            Yii::$app->session->setFlash('error', 'Token non valido o scaduto.');
             return $this->redirect(['site/login']);
-        } else {
-            Yii::$app->session->setFlash('error', 'Errore durante la modifica della password.');
         }
-    }
 
-    return $this->render('modifyPassword', [
-        'tokenUser' => $user
-    ]);
+        if (Yii::$app->request->isPost) {
+            $password = Yii::$app->request->post('User')['password'];
+
+            if ($function->modifyPassword($password, $token)) {
+                Yii::$app->session->setFlash('success', 'Password modificata con successo.');
+                return $this->redirect(['site/login']);
+            } else {
+                Yii::$app->session->setFlash('error', 'Errore durante la modifica della password.');
+            }
+        }
+
+        return $this->render('modifyPassword', [
+            'tokenUser' => $user
+        ]);
 
 
 
@@ -271,49 +304,47 @@ return $this->render('index', [
 
     public function actionAttesa()
     {
-      
-        $user=User::findOne(['username'=>Yii::$app->user->identity->username]);
+
+        $user = User::findOne(['username' => Yii::$app->user->identity->username]);
         // Ticket dell’utente
-$ticket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->all();
+        $ticket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->all();
 
-// Conteggio corretto dei ticket dell’utente
-$countTicket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->count();
+        // Conteggio corretto dei ticket dell’utente
+        $countTicket = Ticket::find()->where(['id_cliente' => Yii::$app->user->identity->id])->count();
 
-//ulitmo ticket rilevato
+        //ulitmo ticket rilevato
 
-$ultimoTicket = Ticket::find()
-    ->where(['id_cliente' => Yii::$app->user->identity->id])
-    ->orderBy(['data_invio' => SORT_DESC])
-    ->one();
+        $ultimoTicket = Ticket::find()
+            ->where(['id_cliente' => Yii::$app->user->identity->id])
+            ->orderBy(['data_invio' => SORT_DESC])
+            ->one();
 
 
-        if(!$user->approvazione){
-      Yii::$app->session->setFlash('info','Si prega di attendere l\'approvazione da parte di uno degli amministratori,grazie per l\'attesa');
-
-        }else{
-         return $this->redirect(['index']);
-
-    }
-      return $this->render('approved',[
-            'user'=>$user,
-         'ticket'=>$ticket,
-         'countTicket'=>$countTicket,
-         'ultimoTicket'=>$ultimoTicket]);
+        if (!$user->approvazione) {
+            Yii::$app->session->setFlash('info', 'Si prega di attendere l\'approvazione da parte di uno degli amministratori,grazie per l\'attesa');
+        } else {
+            return $this->redirect(['index']);
+        }
+        return $this->render('approved', [
+            'user' => $user,
+            'ticket' => $ticket,
+            'countTicket' => $countTicket,
+            'ultimoTicket' => $ultimoTicket
+        ]);
     }
     public function actionRegister()
     {
         $user = new User();
         $function = new userService();
-        $turni=new Turni();
+        $turni = new Turni();
 
         if ($user->load(Yii::$app->request->post())) {
             try {
                 if ($function->verifyUser($user->username, $user->email)) {
                     Yii::$app->session->setFlash('error', 'Utente già registrato');
-                
-                }else if ($function->registerAdmin($user->nome, $user->cognome, $user->password, $user->email, $user->ruolo,$user->partita_iva,$user->azienda,$user->recapito_telefonico)) {
-             
-                Yii::$app->session->setFlash('success', 'Registrazione avvenuta correttamente');
+                } else if ($function->registerAdmin($user->nome, $user->cognome, $user->password, $user->email, $user->ruolo, $user->partita_iva, $user->azienda, $user->recapito_telefonico)) {
+
+                    Yii::$app->session->setFlash('success', 'Registrazione avvenuta correttamente');
                     return $this->redirect(['login']);
                 } else {
 
@@ -328,7 +359,7 @@ $ultimoTicket = Ticket::find()
         }
 
 
-        return $this->render('register', ['user' => $user,'turni'=>$turni]);
+        return $this->render('register', ['user' => $user, 'turni' => $turni]);
     }
 
     public function actionAccount()
@@ -345,170 +376,189 @@ $ultimoTicket = Ticket::find()
 
     public function actionModifyUsername()
     {
-         $user=new User();
-         $function=new userService();
+        $user = new User();
+        $function = new userService();
 
-         if($user->load(Yii::$app->request->post()))
-            {
-                /*
+        if ($user->load(Yii::$app->request->post())) {
+            /*
                 if($function->verifyCookie()){
                       Yii::$app->session->setFlash('error','Email inesistente');
                       return $this->redirect(['index']);
                 }
                 */
-                if($function->recoveryEmail($user->email))
-                    {
-                        Yii::$app->session->setFlash('success','Recupero email effettuata con successo');
-                        return $this->redirect(['site/index']);
-                        }else{
-                         Yii::$app->session->setFlash('error','Recupero email non  effettuata con successo');
-                         
-                         return $this->redirect(['site/index']);
-                    }
+            if ($function->recoveryEmail($user->email)) {
+                Yii::$app->session->setFlash('success', 'Recupero email effettuata con successo');
+                return $this->redirect(['site/index']);
+            } else {
+                Yii::$app->session->setFlash('error', 'Recupero email non  effettuata con successo');
+
+                return $this->redirect(['site/index']);
             }
-            return $this->render('modifyEmail',['user'=>$user]);
-         
+        }
+        return $this->render('modifyEmail', ['user' => $user]);
     }
 
-    public function actionReset($username){
-        $user=User::findOne(['blocco'=>true]);
-        $function=new userService();
-        
-                if($function->resetLogin($username))
-                    {
-                        Yii::$app->session->setFlash('success','Reset effettuato correttamente');
-                        return $this->redirect(['index']);
-                    }else{
-                         Yii::$app->session->setFlash('error','Reset  non effettuato correttamente');
-                         return $this->redirect(['index']);
+    public function actionReset($username)
+    {
+        $user = User::findOne(['blocco' => true]);
+        $function = new userService();
 
-                    }
-
-
-            
+        if ($function->resetLogin($username)) {
+            Yii::$app->session->setFlash('success', 'Reset effettuato correttamente');
+            return $this->redirect(['index']);
+        } else {
+            Yii::$app->session->setFlash('error', 'Reset  non effettuato correttamente');
+            return $this->redirect(['index']);
+        }
     }
 
 
     public function actionModifyIva()
     {
-        $user=new User();
-        $function=new userService();
+        $user = new User();
+        $function = new userService();
 
-        if($user->load(Yii::$app->request->post()))
-            {
-                if($function->ModifyPartitaIva($user->partita_iva))
-                    {
-                        Yii::$app->session->setflash('success','Modifica della partita iva effettuata correttamente');
-                        return $this->redirect(['index']);
-                    }else{
-                         Yii::$app->session->setflash('success','Modifica della partita iva non effettuata correttamente');
-                         return $this->redirect(['index']);
-                    }
-
-
+        if ($user->load(Yii::$app->request->post())) {
+            if ($function->ModifyPartitaIva($user->partita_iva)) {
+                Yii::$app->session->setflash('success', 'Modifica della partita iva effettuata correttamente');
+                return $this->redirect(['index']);
+            } else {
+                Yii::$app->session->setflash('success', 'Modifica della partita iva non effettuata correttamente');
+                return $this->redirect(['index']);
             }
+        }
 
-            return $this->render('modifyIva',['user'=>$user]);
+        return $this->render('modifyIva', ['user' => $user]);
     }
 
-    
-public function actionModifyImage()
-{
-    $account = User::findOne(['username' => Yii::$app->user->identity->username]);
-    $service = new userService();
 
-    if (Yii::$app->request->isPost) {
-        // Prendi il file dall'input del modello $account (campo 'immagine')
-        $file = \yii\web\UploadedFile::getInstance($account, 'immagine');
+    public function actionModifyImage()
+    {
+        $account = User::findOne(['username' => Yii::$app->user->identity->username]);
+        $service = new userService();
 
-        if ($file === null) {
-            Yii::$app->session->setFlash('error', 'Nessun file caricato.');
+        if (Yii::$app->request->isPost) {
+            // Prendi il file dall'input del modello $account (campo 'immagine')
+            $file = \yii\web\UploadedFile::getInstance($account, 'immagine');
+
+            if ($file === null) {
+                Yii::$app->session->setFlash('error', 'Nessun file caricato.');
+                return $this->redirect(['account']);
+            }
+
+            // Chiama il service passando l'account e l'UploadedFile
+            if ($service->modifyImmagine($account, $file)) {
+                Yii::$app->session->setFlash('success', 'Immagine modificata con successo.');
+            } else {
+                Yii::$app->session->setFlash('error', 'Errore nella modifica dell\'immagine.');
+            }
+
             return $this->redirect(['account']);
         }
 
-        // Chiama il service passando l'account e l'UploadedFile
-        if ($service->modifyImmagine($account, $file)) {
-            Yii::$app->session->setFlash('success', 'Immagine modificata con successo.');
-        } else {
-            Yii::$app->session->setFlash('error', 'Errore nella modifica dell\'immagine.');
-        }
-
-        return $this->redirect(['account']);
+        return $this->render('myAccount', [
+            'account' => $account
+        ]);
     }
 
-    return $this->render('myAccount', [
-        'account' => $account
-    ]);
-}
 
+    public function actionModifyEmail()
+    {
+        $user = User::findOne(['username' => Yii::$app->user->identity->username]);
+        $function = new userService();
 
-public function actionModifyEmail()
-{
-    $user=User::findOne(['username'=>Yii::$app->user->identity->username]);
-    $function=new userService();
-
-    if($user->load(Yii::$app->request->post()))
-        {
-            if($function->recoveryEmail($user->email))
-                {
-                    Yii::$app->session->setFlash('success','Email recuperatacon successo');
-                    return $this->redirect(['logout']);
-                }else{
-                     Yii::$app->session->setFlash('success','Email non recuperatacon successo');
-                }
+        if ($user->load(Yii::$app->request->post())) {
+            if ($function->recoveryEmail($user->email)) {
+                Yii::$app->session->setFlash('success', 'Email recuperatacon successo');
+                return $this->redirect(['logout']);
+            } else {
+                Yii::$app->session->setFlash('success', 'Email non recuperatacon successo');
+            }
         }
-        return $this->render('modifyEmail',[
-            'user'=>$user
+        return $this->render('modifyEmail', [
+            'user' => $user
         ]);
-}
+    }
 
-public function actionSaltaPausa($id)
-{
-    $function=new userService();
-    $turni=Turni::findOne(['id_operatore'=>$id]);
+    public function actionSaltaPausa($id)
+    {
+        $function = new userService();
+        $turni = Turni::findOne(['id_operatore' => $id]);
 
-    if($function->saltaPausa($id))
-        {
+        if ($function->saltaPausa($id)) {
             Yii::$app->session->setFlash('success', 'Pausa saltata correttamente');
             return $this->refresh();
-        }else{
+        } else {
             Yii::$app->session->setFlash('error', 'Pausa  non saltata correttamente');
             return $this->refresh();
         }
-}
+    }
 
-public function actionMyReclamo(){
-    $reclamo=Mail::find()->where(['azienda'=>Yii::$app->user->identity->azienda])->all();
+    public function actionMyReclamo()
+    {
+        $reclamo = Mail::find()->where(['azienda' => Yii::$app->user->identity->azienda])->all();
 
-    return $this->render('MyReclami',['reclamo'=>$reclamo]);
-}
+        return $this->render('MyReclami', ['reclamo' => $reclamo]);
+    }
 
-  
+
 
     public function actionVisualizzato($codice_ticket)
     {
-        $function=new userService();
-        
-         return $function->visualizzato($codice_ticket);
+        $function = new userService();
+
+        return $function->visualizzato($codice_ticket);
 
         //return $this->redirect(['all-reclami']);
     }
 
-    public function actionAvanzaRiapertura($codice_ticket,$id_operatore){
-        $function=new userService();
-        $cookie=Yii::$app->request->cookies;
-        if($function->avanzaRiapertura($codice_ticket,$id_operatore))
-            {
-                if($cookie->has('richiesta'))
-                    {
-                          Yii::$app->session->setFlash('error','La richiesta è sta gia\' inviata');
-                return $this->redirect(['operatore/view-ticket']);
-                    }
-                Yii::$app->session->setFlash('success','Riapertura avanzata correttamente');
-                return $this->redirect(['operatore/view-ticket']);
-            }else{
-                Yii::$app->session->setFlash('error','Riapertura non  avanzata correttamente');
+    public function actionAvanzaRiapertura($codice_ticket, $id_operatore)
+    {
+        $function = new userService();
+        $cookie = Yii::$app->request->cookies;
+        if ($function->avanzaRiapertura($codice_ticket, $id_operatore)) {
+            if ($cookie->has('richiesta')) {
+                Yii::$app->session->setFlash('error', 'La richiesta è sta gia\' inviata');
                 return $this->redirect(['operatore/view-ticket']);
             }
+            Yii::$app->session->setFlash('success', 'Riapertura avanzata correttamente');
+            return $this->redirect(['operatore/view-ticket']);
+        } else {
+            Yii::$app->session->setFlash('error', 'Riapertura non  avanzata correttamente');
+            return $this->redirect(['operatore/view-ticket']);
+        }
+    }
+
+    public function actionMessagio($codice_ticket)
+    {
+        $function=new userService();
+        $user=User::findOne(Yii::$app->user->identity->id);
+        $model=new Mail();
+
+        if($model->load(Yii::$app->request->post())){
+        if($function->resolveMessage($codice_ticket,Yii::$app->user->identity->email,$model->messagio))
+            {
+                  Yii::$app->session->setFlash('success', 'Risposta inviata correttamente');
+                  // Compone ed invia email
+        Yii::$app->mailer->compose()
+            ->setTo(Yii::$app->params['senderEmail'])
+            ->setFrom(Yii::$app->user->identity->email)
+            ->setReplyTo([Yii::$app->user->identity->email => Yii::$app->user->identity->email])
+            ->setSubject('Messagio relativo al ticket con codice:' . $codice_ticket)
+            ->setHtmlBody('<html>'.'
+            <body>
+            <p>'.$model->messagio.'</p>
+            <img src='.Yii::getAlias('@web/img/taglio_dataseed.svg').'
+            </body>
+            '.'</html>')
+            ->send();
+                return $this->redirect(['index']);
+            }else{
+                 Yii::$app->session->setFlash('error', 'Risposta non inviata correttamente');
+                return $this->redirect(['index']);
+            }
+        }
+
+            return $this->render('Message',['model'=>$model]);
     }
 }

@@ -5,7 +5,7 @@ use yii\widgets\ActiveForm;
 use app\assets\LogAsset;
 
 /** @var yii\web\View $this */
-/** @var app\models\Ticket $ticket */
+/** @var app\models\Ticket $ticket*/
 
 $this->title = '';
 LogAsset::register($this);

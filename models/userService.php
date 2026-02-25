@@ -116,13 +116,13 @@ class userService extends Model
         if($file){
             $fileName=Yii::$app->security->generateRandomString().'.'.'svg';
             $file->saveAs('./img/upload/'.$fileName);
-            $user->immagine='web/img/upload/'.$fileName;
+            $user->immagine=$fileName;
         }
 
         // Assegna campi
         $user->nome = $nome;
         $user->cognome = $cognome;
-        $user->username =$nome[0].'.'.$cognome; // ⚠ possibile duplicato
+        $user->username =$nome[0].'.'.$cognome;
         $user->password = Yii::$app->security->generatePasswordHash($password);
         $user->email = $email;
         $user->auth_key = Yii::$app->security->generateRandomString();
@@ -132,6 +132,7 @@ class userService extends Model
         $user->recapito_telefonico=$recapito_telefonico;
         $user->tentativi=10;
         $user->blocco=false;
+       
         $user->partita_iva=$partita_iva;
 
         // Logica approvazione cliente
@@ -328,7 +329,7 @@ public function modifyImmagine($user, UploadedFile $file) {
             return false; 
             } 
             // Directory di destinazione (filesystem) 
-            $uploadDir = Yii::getAlias('@webroot/img/upload'); 
+            $uploadDir = Yii::getAlias('@web/img/upload'); 
             // Crea la cartella se non esiste 
             if (!is_dir($uploadDir)) { 
                 if (!mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) { 
@@ -355,7 +356,7 @@ public function modifyImmagine($user, UploadedFile $file) {
                                          Yii::error("Eccezione durante saveAs: " . $e->getMessage()); return false; 
                                          } // (Opzionale) rimuovi immagine precedente se presente e non è default
                                           if (!empty($user->immagine)) { 
-                                            $old = Yii::getAlias('@webroot/img/upload/' . $user->immagine); if (is_file($old) && is_writable($old)) { @unlink($old); 
+                                            $old = Yii::getAlias('@web/img/upload/' . $user->immagine); if (is_file($old) && is_writable($old)) { @unlink($old); 
                                             } 
                                             } 
                                             // Salva il nome file nel modello (solo attributo immagine) 
@@ -531,8 +532,33 @@ public function avanzaRiapertura($codice_ticket, $id_operatore)
     return $tutteInviate;
 }
 
-     // =========================
-    // MODIFICA IL RUOLO 
-    // =========================
+public function disattiva2fa()
+{
+    $user=User::findOne(Yii::$app->user->identity->id);
 
+    if($user->is_totp_enabled)
+        {
+            $user->totp_secret=null;
+            $user->is_totp_enabled=0;
+
+            $user->save();
+        }
+}
+
+public function resolveMessage($codice_ticket,$messagio)
+{
+    $mail=new Mail();
+
+    $mail->mittente=Yii::$app->user->identity->email;
+    $mail->destinatario=Yii::$app->params['senderEmail'];
+    $mail->messagio=$messagio;
+    $mail->oggetto='Messagio da parte di '. Yii::$app->user->identity->nome.' '. Yii::$app->user->identity->cognome;
+    $mail->codice_ticket=$codice_ticket;
+
+ 
+    return $mail->save();
+
+    
+}
+   
 }

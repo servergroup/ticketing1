@@ -1,3 +1,6 @@
+<?php
+use yii\helpers\Html;
+?>
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="border-radius:10px !important">
 
 <div class="zona-logo" style="background-color:white;">
@@ -18,7 +21,7 @@
             
             <div class="image">
                 <img id='logo_utente' src='<?=Yii::getAlias('@web/img/upload/'.Yii::$app->user->identity->immagine)?>' class="img-circle elevation-2" alt="User Image">
-                     
+           
             </div>
             <?php
 }else{
@@ -35,7 +38,13 @@
                 <a href="/site/account" class="d-block">
                     <?= Yii::$app->user->isGuest ? 'Ospite' : Yii::$app->user->identity->username ?>
                 </a>
+    
             </div>
+                                     <?= Html::a(
+        '<img src="'.Yii::getAlias('@web/img/logout.png').'" style="width:30px;margin-left:100px;">',
+        ['site/logout'],
+        ['class' => 'logout']
+    ) ?>
         </div>
 
         <!-- Sidebar Menu -->
@@ -65,7 +74,8 @@
                             ['label' => 'Ticket aperti', 'icon' => 'fas fa-exclamation-circle', 'url' => ['tickets/open']],
                             ['label' => 'Ticket chiusi', 'icon' => 'fas fa-check', 'url' => ['tickets/close']],
                              ['label' => 'Ticket scaduti', 'icon' => 'fas fa-check', 'url' => ['tickets/scadence']],
-                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/create']],
+                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
+                             ['label' => 'Tempi del ticket', 'icon' => 'fas fa-ticket-alt', 'url' => ['tempi/index']],
                            
                         ]
                     ],
@@ -76,8 +86,8 @@
                         'items' => [
                     ['label' => 'Nuovo operatore/amministratore', 'icon' => 'fas fa-user-plus', 'url' => ['site/register']],
                     ['label' => 'Utenti in attesa', 'icon' => 'fas fa-user-clock', 'url' => ['admin/attese']],
-                    ['label' => 'Utenti bloccati', 'icon' => 'fas fa-user-slash', 'url' => ['admin/block-user']],
-                     ['label' => 'Tempi del ticket', 'icon' => 'fas fa-ticket-alt', 'url' => ['admin/tempi']],
+                    ['label' => 'Utenti bloccati', 'icon' => 'fas fa-user-slash', 'url' => ['admin/block']],
+                    
 
                         ]
                     ],
@@ -86,7 +96,7 @@
                         'label'=>'Dipendenti',
                         'icon'=>'fas fa-user-alt',
                         'items'=>[
-                    ['label' => 'Gestione operatori', 'icon' => 'fas fa-plus', 'url' => ['admin/gestione-dipendenti']],
+                    ['label' => 'Gestione operatori', 'icon' => 'fas fa-plus', 'url' => ['admin/index']],
                      ['label' => 'Verifica i ruoli', 'icon' => 'fas fa-plus', 'url' => ['admin/verify-ruolo']],
                      
                 ]
@@ -107,7 +117,7 @@
                         'label' => 'Ticket',
                         'icon' => 'fas fa-ticket-alt',
                         'items' => [
-                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['operatore/view-ticket']],
+                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['assegnazioni/my-ticket']],
                              ['label' => 'Ticket del mio reparto', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto']],
                              ['label' => 'Ticket del mio reparto aperti', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto-open']],
                         ]
@@ -129,8 +139,8 @@
                         'label' => 'Ticket',
                         'icon' => 'fas fa-ticket-alt',
                         'items' => [
-                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['ticket/new-ticket']],
-                            ['label' => 'Evoluzione ticket', 'icon' => 'fas fa-history', 'url' => ['ticket/my-ticket']],
+                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
+                            ['label' => 'Evoluzione ticket', 'icon' => 'fas fa-history', 'url' => ['tickets/my-ticket']],
                         ]
                     ],
                     ['label' => 'Contattaci', 'icon' => 'fas fa-contact', 'url' => ['site/contact']],
@@ -149,7 +159,7 @@
                         'label' => 'Ticket',
                         'icon' => 'fas fa-ticket-alt',
                         'items' => [
-                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['operatore/view-ticket']],
+                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['assegnazioni/my-ticket']],
                             ['label' => 'Ticket del mio reparto', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto']],
                              ['label' => 'Ticket del mio reparto aperti', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto-open']],
                         ]

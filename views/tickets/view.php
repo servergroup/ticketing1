@@ -26,7 +26,24 @@ $this->params['breadcrumbs'][] = $this->title;
         ]) ?>
     </p>
 
+    <?php if(Yii::$app->user->identity->ruolo=='cliente'):?>
     <?= DetailView::widget([
+        'model' => $model,
+        
+        'attributes' => [
+            'id',
+            'problema',
+            'ambito',
+            'codice_ticket',
+            'stato',
+            'data_invio',
+            'priorita',
+        ],
+    ]) ?>
+
+       <?php else:  ?>
+
+        <?= DetailView::widget([
         'model' => $model,
         'attributes' => [
             'id',
@@ -35,10 +52,11 @@ $this->params['breadcrumbs'][] = $this->title;
             'codice_ticket',
             'stato',
             'scadenza',
-            'data_invio',
             'id_cliente',
+            'data_invio',
             'priorita',
         ],
     ]) ?>
+        <?php endif; ?>
 
 </div>

@@ -3,36 +3,40 @@
 use yii\helpers\Html;
 use yii\widgets\DetailView;
 
- use app\models\User;
 /** @var yii\web\View $this */
-/** @var app\models\Turni $model */
+/** @var app\models\User $model */
 
-$user=User::findOne($model->id_operatore);
-$this->title = $user->nome. ' ' .$user->cognome;
-$this->params['breadcrumbs'][] = ['label' => 'Turni', 'url' => ['index']];
+$this->title = $model->id;
+$this->params['breadcrumbs'][] = ['label' => 'Users', 'url' => ['index']];
 $this->params['breadcrumbs'][] = $this->title;
 \yii\web\YiiAsset::register($this);
 ?>
-<div class="turni-view">
+<div class="user-view">
 
-    <h1><?= Html::encode( 'Turni di ' . $this->title) ?></h1>
+    <h1><?= Html::encode($this->title) ?></h1>
 
-   
+    <p>
+        <?= Html::a('Modifica', ['update', 'id' => $model->id], ['class' => 'btn btn-primary']) ?>
+        <?= Html::a('Elimina', ['delete', 'id' => $model->id], [
+            'class' => 'btn btn-danger',
+            'data' => [
+                'confirm' => 'Sei sicuro di voler eliminare questo utente?',
+                'method' => 'post',
+            ],
+        ]) ?>
+    </p>
+
     <?= DetailView::widget([
         'model' => $model,
         'attributes' => [
-
-            'entrata',
-            'uscita',
-            'pausa',
-            'stato',
+            'id',
+            'nome',
+            'cognome',
+            'username',
+            'email:email',
+            'ruolo',
+          
         ],
     ]) ?>
 
 </div>
-
-<style>
-    h1{
-        text-align:center;
-    }
-</style>

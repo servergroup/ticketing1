@@ -1,6 +1,7 @@
 <?php
 
 use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\widgets\DetailView;
 
 /** @var yii\web\View $this */
@@ -15,33 +16,25 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <h1><?= Html::encode($this->title) ?></h1>
 
-    <p>
-        <?= Html::a('Update', ['update', 'id' => $model->id], ['class' => 'btn btn-primary']) ?>
-        <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-            'class' => 'btn btn-danger',
-            'data' => [
-                'confirm' => 'Are you sure you want to delete this item?',
-                'method' => 'post',
-            ],
-        ]) ?>
-    </p>
-
-    <?= DetailView::widget([
-        'model' => $model,
-        'attributes' => [
-            'id',
-            'id_ticket',
-            'id_operatore',
-            'ora_inizio',
-            'ora_fine',
-            'tempo_lavorazione',
-            'pause_effettuate',
-            'tempi_pause',
-            'ora_pause',
-            'chiuso_il',
-            'stato',
-            'tempo_sospensione',
-        ],
-    ]) ?>
+     
+    <?= DetailView::widget([ 
+        'model' => $model, 
+        'attributes' => [ 
+            'id', 'id_ticket', 'id_operatore', 'ora_inizio',
+            // ... 
+            [
+                 'attribute' => 'tempi_pause', 
+                 'label' => 'Tempi Pause (JSON)', 
+                 'value' => function($model) { 
+                    $val = $model->tempi_pause; 
+                    if (is_array($val)) { 
+                        return Json::encode($val); 
+                        } 
+                        return (string)$val; },
+                         'format' => 'ntext', 
+                         // o 'raw' se già codificato/escaped 
+                         ], 
+                         ], 
+                         ]) ?> 
 
 </div>

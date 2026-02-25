@@ -71,6 +71,10 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
             'Symfony\\Component\\Console\\' => 26,
             'Symfony\\Component\\BrowserKit\\' => 29,
         ),
+        'R' =>
+        array (
+            'RobThree\\Auth\\' => 14,
+        ),
         'P' =>
         array (
             'Psy\\' => 4,
@@ -96,6 +100,7 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
         array (
             'Doctrine\\Common\\Lexer\\' => 22,
             'DeepCopy\\' => 9,
+            'DASPRiD\\Enum\\' => 13,
         ),
         'C' =>
         array (
@@ -105,6 +110,7 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
         'B' =>
         array (
             'Behat\\Gherkin\\' => 14,
+            'BaconQrCode\\' => 12,
         ),
     );
 
@@ -233,6 +239,10 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
         array (
             0 => __DIR__ . '/..' . '/symfony/browser-kit',
         ),
+        'RobThree\\Auth\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/robthree/twofactorauth/lib',
+        ),
         'Psy\\' =>
         array (
             0 => __DIR__ . '/..' . '/psy/psysh/src',
@@ -278,6 +288,10 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
+        'DASPRiD\\Enum\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/dasprid/enum/src',
+        ),
         'Codeception\\Extension\\' =>
         array (
             0 => __DIR__ . '/..' . '/codeception/codeception/ext',
@@ -291,6 +305,10 @@ class ComposerStaticInit28ee14ddd8bb3ae8ac0ca3c1d4a5490a
         'Behat\\Gherkin\\' =>
         array (
             0 => __DIR__ . '/..' . '/behat/gherkin/src',
+        ),
+        'BaconQrCode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/bacon/bacon-qr-code/src',
         ),
     );
 

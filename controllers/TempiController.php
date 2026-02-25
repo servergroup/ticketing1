@@ -2,19 +2,57 @@
 
 namespace app\controllers;
 
-use Yii;
 use app\models\TempiTicket;
+use app\models\TempiTable;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
+use yii\filters\VerbFilter;
 
+/**
+ * TempiController implements the CRUD actions for TempiTicket model.
+ */
 class TempiController extends Controller
 {
-    public function actionIndex()
+    /**
+     * @inheritDoc
+     */
+    public function behaviors()
     {
-        $model = TempiTicket::find()->all();
-        return $this->render('index', ['model' => $model]);
+        return array_merge(
+            parent::behaviors(),
+            [
+                'verbs' => [
+                    'class' => VerbFilter::className(),
+                    'actions' => [
+                        'delete' => ['POST'],
+                    ],
+                ],
+            ]
+        );
     }
 
+    /**
+     * Lists all TempiTicket models.
+     *
+     * @return string
+     */
+    public function actionIndex()
+    {
+        $searchModel = new TempiTable();
+        $dataProvider = $searchModel->search($this->request->queryParams);
+
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    /**
+     * Displays a single TempiTicket model.
+     * @param int $id ID
+     * @return string
+     * @throws NotFoundHttpException if the model cannot be found
+     */
     public function actionView($id)
     {
         return $this->render('view', [
@@ -22,113 +60,48 @@ class TempiController extends Controller
         ]);
     }
 
-    public function actionCreate()
-    {
-        $model = new TempiTicket();
+    /**
+     * Creates a new TempiTicket model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return string|\yii\web\Response
+     */
+   
+    /**
+     * Updates an existing TempiTicket model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param int $id ID
+     * @return string|\yii\web\Response
+     * @throws NotFoundHttpException if the model cannot be found
+     */
 
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['update', 'id' => $model->id]);
-        }
 
-        return $this->render('create', ['model' => $model]);
-    }
-
-    public function actionUpdate($id)
-    {
-        $model = $this->findModel($id);
-
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['update', 'id' => $model->id]);
-        }
-
-        return $this->render('update', ['model' => $model]);
-    }
-
+    /**
+     * Deletes an existing TempiTicket model.
+     * If deletion is successful, the browser will be redirected to the 'index' page.
+     * @param int $id ID
+     * @return \yii\web\Response
+     * @throws NotFoundHttpException if the model cannot be found
+     */
     public function actionDelete($id)
     {
         $this->findModel($id)->delete();
+
         return $this->redirect(['index']);
     }
 
-    /* -------------------------
-       🔵 GESTIONE PAUSE
-       ------------------------- */
-
-    public function actionStartPause($id)
-    {
-        $model = $this->findModel($id);
-
-        $pause = $model->tempi_pause ?? [];
-        $pause[] = time(); // salva timestamp inizio pausa
-
-        $model->tempi_pause = $pause;
-        $model->stato = 'in_pausa';
-        $model->save(false);
-
-        return $this->redirect(['update', 'id' => $id]);
-    }
-
-    public function actionStopPause($id)
-    {
-        $model = $this->findModel($id);
-
-        $pause = $model->tempi_pause ?? [];
-
-        $inizio = array_pop($pause);
-        $durata = time() - $inizio;
-
-        $pause[] = $durata;
-        $model->tempi_pause = $pause;
-        $model->stato = 'in_lavorazione';
-        $model->save(false);
-
-        return $this->redirect(['update', 'id' => $id]);
-    }
-
-    /* -------------------------
-       🔵 GESTIONE SOSPENSIONI
-       ------------------------- */
-
-    public function actionStartSospensione($id)
-    {
-        $model = $this->findModel($id);
-
-        $model->stato = 'sospeso';
-        $model->chiuso_il = date('Y-m-d H:i:s'); // salva inizio sospensione
-        $model->save(false);
-
-        return $this->redirect(['update', 'id' => $id]);
-    }
-
-    public function actionStopSospensione($id)
-    {
-        $model = $this->findModel($id);
-
-        $inizio = strtotime($model->chiuso_il);
-        $fine = time();
-        $durata = $fine - $inizio;
-
-        $h = floor($durata / 3600);
-        $m = floor(($durata % 3600) / 60);
-        $s = $durata % 60;
-
-        $model->tempo_sospensione = sprintf('%02d:%02d:%02d', $h, $m, $s);
-        $model->stato = 'in_lavorazione';
-        $model->save(false);
-
-        return $this->redirect(['update', 'id' => $id]);
-    }
-
-    /* -------------------------
-       🔵 FIND MODEL
-       ------------------------- */
-
+    /**
+     * Finds the TempiTicket model based on its primary key value.
+     * If the model is not found, a 404 HTTP exception will be thrown.
+     * @param int $id ID
+     * @return TempiTicket the loaded model
+     * @throws NotFoundHttpException if the model cannot be found
+     */
     protected function findModel($id)
     {
-        if (($model = TempiTicket::findOne($id)) !== null) {
+        if (($model = TempiTicket::findOne(['id' => $id])) !== null) {
             return $model;
         }
 
-        throw new NotFoundHttpException('Record non trovato.');
+        throw new NotFoundHttpException('The requested page does not exist.');
     }
 }

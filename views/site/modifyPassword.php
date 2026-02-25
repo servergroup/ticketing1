@@ -41,7 +41,7 @@ if (Yii::$app->session->hasFlash('error')) {
             ])->label(false) ?>
 
             <?= $form->field($tokenUser, 'password')->passwordInput([
-                'placeholder' => 'Nuova password',
+                
                 'class' => 'ds-input'
             ])->label('Nuova password') ?>
 

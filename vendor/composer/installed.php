@@ -30,6 +30,15 @@
             ),
             'dev_requirement' => false,
         ),
+        'bacon/bacon-qr-code' => array(
+            'pretty_version' => 'v3.0.3',
+            'version' => '3.0.3.0',
+            'reference' => '36a1cb2b81493fa5b82e50bf8068bf84d1542563',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../bacon/bacon-qr-code',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'behat/gherkin' => array(
             'pretty_version' => 'v4.16.1',
             'version' => '4.16.1.0',
@@ -188,6 +197,15 @@
             'install_path' => __DIR__ . '/../codeception/verify',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'dasprid/enum' => array(
+            'pretty_version' => '1.0.7',
+            'version' => '1.0.7.0',
+            'reference' => 'b5874fa9ed0043116c72162ec7f4fb50e02e7cce',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../dasprid/enum',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'doctrine/lexer' => array(
             'pretty_version' => '3.0.1',
@@ -446,6 +464,15 @@
             'install_path' => __DIR__ . '/../ralouphie/getallheaders',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'robthree/twofactorauth' => array(
+            'pretty_version' => 'v3.0.3',
+            'version' => '3.0.3.0',
+            'reference' => '85408c4e775dba7c0802f2d928efd921d530bc5b',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../robthree/twofactorauth',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'sebastian/cli-parser' => array(
             'pretty_version' => '4.2.0',
