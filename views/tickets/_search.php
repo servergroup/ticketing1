@@ -19,7 +19,7 @@ use yii\widgets\ActiveForm;
 
     <?= $form->field($model, 'problema') ?>
 
-    <?= $form->field($model, 'ambito') ?>
+    <?= $form->field($model, 'reparto') ?>
 
     <?= $form->field($model, 'codice_ticket') ?>
 

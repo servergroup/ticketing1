@@ -2,11 +2,13 @@
 
 namespace app\controllers;
 
+use Yii;
 use app\models\TempiTicket;
 use app\models\TempiTable;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\filters\AccessControl;
 
 /**
  * TempiController implements the CRUD actions for TempiTicket model.
@@ -18,17 +20,41 @@ class TempiController extends Controller
      */
     public function behaviors()
     {
-        return array_merge(
-            parent::behaviors(),
-            [
-                'verbs' => [
-                    'class' => VerbFilter::className(),
-                    'actions' => [
-                        'delete' => ['POST'],
+        return [
+            // ACCESS CONTROL - Solo operatori (developer, ict)
+            'access' => [
+                'class' => AccessControl::class,
+                'only' => ['index', 'view', 'delete', 'findModel'],
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'actions' => ['index', 'view', 'delete', 'findModel'],
+                        'roles' => ['@'],
+                        'matchCallback' => function () {
+                            $ruolo = Yii::$app->user->identity->ruolo;
+                            $approvazione = Yii::$app->user->identity->approvazione;
+                            return in_array($ruolo, ['developer', 'ict']) && $approvazione == 1;
+                        },
+                        'denyCallback' => function () {
+                            $approvazione = Yii::$app->user->identity->approvazione;
+                            if ($approvazione != 1) {
+                                Yii::$app->session->setFlash('error', 'Attendere l\'approvazione da parte di un amministratore.');
+                            } else {
+                                Yii::$app->session->setFlash('error', 'Non hai i permessi per accedere a questa sezione.');
+                            }
+                            return $this->goHome();
+                        }
                     ],
                 ],
-            ]
-        );
+            ],
+            // VERB FILTER
+            'verbs' => [
+                'class' => VerbFilter::className(),
+                'actions' => [
+                    'delete' => ['POST'],
+                ],
+            ],
+        ];
     }
 
     /**
@@ -59,21 +85,6 @@ class TempiController extends Controller
             'model' => $this->findModel($id),
         ]);
     }
-
-    /**
-     * Creates a new TempiTicket model.
-     * If creation is successful, the browser will be redirected to the 'view' page.
-     * @return string|\yii\web\Response
-     */
-   
-    /**
-     * Updates an existing TempiTicket model.
-     * If update is successful, the browser will be redirected to the 'view' page.
-     * @param int $id ID
-     * @return string|\yii\web\Response
-     * @throws NotFoundHttpException if the model cannot be found
-     */
-
 
     /**
      * Deletes an existing TempiTicket model.

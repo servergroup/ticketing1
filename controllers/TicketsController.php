@@ -28,21 +28,21 @@ class TicketsController extends Controller
         'access' => [
             'class' => \yii\filters\AccessControl::class,
             'only' => [
-                'index','new-ticket','my-ticket','delete-ticket','ritiro',
-                'modify-ticket','reintegra','resolve','my-reparto',
-                'my-reparto-open'
+                'ritiro',
+                'modify-ticket','reintegra','my-ticket','new-ticket','resolve','my-reparto',
+                'my-reparto-open','resolve','my-reparto-open'
             ],
             'rules' => [
 
                 // 1️⃣ CLIENTE
                 [
                     'allow' => true,
-                    'actions' => ['new-ticket','my-ticket','delete-ticket','modify-ticket','view','update','delete','findModel','open','scadence','close','lavorazione',''],
+                    'actions' => ['new-ticket','my-ticket','delete-ticket','modify-ticket','view','update','delete','findModel','open','my-ticket','scadence','close','lavorazione','my-account'],
                     'roles' => ['@'],
                     'matchCallback' => function () {
                         $ruolo = Yii::$app->user->identity->ruolo;
                         $approvazione=Yii::$app->user->identity->approvazione;
-                         $ruolo== 'cliente' && $approvazione;
+                         return $ruolo== 'cliente' && $approvazione;
                     },
                      'denyCallback'=>function(){
                         if(Yii::$app->user->identity->approvazione)
@@ -55,12 +55,14 @@ class TicketsController extends Controller
                 // 2️⃣ OPERATORE (developer + ict)
                 [
                     'allow' => true,
-                    'actions' => ['new-ticket','my-ticket','delete-ticket','modify-ticket','index','view','update','delete','findModel','open','scadence','close','lavorazione'],
+                    'actions' => ['new-ticket','my-ticket','delete-ticket','modify-ticket',
+                    'index','view','update','delete','findModel','open','scadence','resolve',
+                    'close','lavorazione','my-account','my-reparto-open'],
                     'roles' => ['@'],
                     'matchCallback' => function () {
                         $ruolo = Yii::$app->user->identity->ruolo;
                         $approvazione=Yii::$app->user->identity->approvazione;
-                        return in_array($ruolo, ['developer','ict']);
+                        return in_array($ruolo, ['developer','ict'], $approvazione) ;
                     },
 
                     'denyCallback'=>function(){
@@ -74,7 +76,7 @@ class TicketsController extends Controller
                 // 3️⃣ AMMINISTRATORE
                 [
                     'allow' => true,
-                    'actions' => ['reintegra','ritiro','new-ticket','my-ticket','delete-ticket','modify-ticket','index','view','update','delete','findModel','open','scadence','close','lavorazione'],
+                    'actions' => ['reintegra','ritiro','new-ticket','my-ticket','delete-ticket','modify-ticket','index','view','update','delete','findModel','open','scadence','close','lavorazione','my-account'],
                     'roles' => ['@'],
                     'matchCallback' => function () {
                         $approvazione=Yii::$app->user->identity->approvazione;
@@ -91,7 +93,7 @@ class TicketsController extends Controller
                 'delete-ticket' => ['POST'],
                 'reintegra' => ['POST'],
                 'ritiro' => ['POST'],
-                'resolve' => ['POST'],
+                'resolve' => ['GET'],
             ],
         ],
     ];
@@ -289,7 +291,7 @@ class TicketsController extends Controller
             // Creazione nuovo ticket
             if ($functions->newTicket(
                 $ticket->problema,
-                $ticket->ambito,
+                $ticket->reparto,
                 $ticket->scadenza,
                 $ticket->priorita,
 
@@ -429,10 +431,14 @@ public function actionMyTicket()
     {
         $ticket=Ticket::findOne($id);
         $user=new userService();
-        $function=new ticketFunction();
+        $function=new ticketFunctions();
           $personale = User::find()->where(['ruolo' => ['amministratore', 'cliente', 'itc', 'developer']])->all();
         
-
+          if(!$function->verifyAssegnazione($ticket->codice_ticket))
+            {
+                 Yii::$app->session->setFlash('error','Ticket non ancora in assegnazione');
+                 return $this->redirect(['assegnazioni/index']);
+                 }
             if($function->chiudiTicket($ticket->id))
                 {
                      foreach ($personale as $p) {
@@ -443,7 +449,7 @@ public function actionMyTicket()
                     );
                 }
                     Yii::$app->session->setFlash('success','Ticket risolto correttamente');
-                    return $this->redirect(['operatore/view-ticket']);
+                    return $this->redirect(['my-ticket']);
                 }else{
                     Yii::$app->session->setFlash('error','Ticket purtroppo non risolto correttamente');
                     return $this->redirect(['operatore/view-ticket']);

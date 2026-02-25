@@ -37,7 +37,7 @@ class Ticket extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['problema', 'ambito', 'codice_ticket', 'stato', 'data_invio','scadenza', 'id_cliente','priorita'], 'default', 'value' => null],
+            [['problema', 'reparto', 'codice_ticket', 'stato', 'data_invio','scadenza', 'id_cliente','priorita'], 'default', 'value' => null],
      
             [['id_cliente'], 'exist', 'skipOnError' => true, 'targetClass' => User::class, 'targetAttribute' => ['id_cliente' => 'id']],
         ];

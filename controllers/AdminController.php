@@ -32,7 +32,7 @@ class AdminController extends Controller
             'only' => [
                 'index','update','view','findModel',
                 'delegate','reset','attese','block',
-                'approve','ritira','resetLogin','viewOperatori',
+                'approve','ritira','resetLogin','view-operatori',
                 'verifyRuolo'
             ],
             'rules' => [
@@ -42,7 +42,7 @@ class AdminController extends Controller
                     'allow' => true,
                     'actions' => [ 'index','update','view','findModel',
                 'delegate','reset','attese','block',
-                'approve','ritira','resetLogin','viewOperatori',
+                'approve','ritira','resetLogin','view-operatori',
                 'verifyRuolo'],
                     'roles' => ['@'],
                     'matchCallback' => function () {

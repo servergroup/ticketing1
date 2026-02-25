@@ -92,6 +92,12 @@ class ticketFunctions extends Model
        return $ticket->save();
     }
 
+    public function verifyAssegnazione($codice_ticket)
+    {
+        $assegnazione=Assegnazioni::findOne(['codice_ticket'=>$codice_ticket]);
+
+        return $assegnazione;
+    }
     /**
      * Chiude un ticket (imposta stato risolto)
      */
@@ -302,7 +308,7 @@ class ticketFunctions extends Model
 
         $ticket->problema = $problema;
         $ticket->priorita = $priorita;
-        $ticket->ambito = $ambito;
+        $ticket->reparto = $ambito;
         $ticket->scadenza = $scadenza;
         return $ticket->save();
     }

@@ -12,7 +12,7 @@ class m260128_144050_table_ticket extends Migration
         $this->createTable('ticket',[
             'id'=>$this->primaryKey(),
             'problema'=>$this->string(),
-            'ambito'=>$this->string(),
+            'reparto'=>$this->string(),
             'codice_ticket'=>$this->string()->unique(),
             'stato'=>$this->string(),
             'scadenza'=>$this->date(),

@@ -14,7 +14,7 @@ use yii\widgets\ActiveForm;
 
     <?= $form->field($model, 'problema')->textInput(['maxlength' => true]) ?>
 
-    <?= $form->field($model, 'ambito')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'reparto')->textInput(['maxlength' => true]) ?>
 
     <?= $form->field($model, 'codice_ticket')->textInput(['maxlength' => true]) ?>
 

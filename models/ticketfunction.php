@@ -18,7 +18,7 @@ class ticketfunction extends Ticket
     {
         return [
             [['id', 'id_cliente'], 'integer'],
-            [['problema', 'ambito', 'codice_ticket', 'stato', 'scadenza', 'data_invio', 'priorita'], 'safe'],
+            [['problema', 'reparto', 'codice_ticket', 'stato', 'scadenza', 'data_invio', 'priorita'], 'safe'],
         ];
     }
 
@@ -66,7 +66,7 @@ class ticketfunction extends Ticket
         ]);
 
         $query->andFilterWhere(['like', 'problema', $this->problema])
-            ->andFilterWhere(['like', 'ambito', $this->ambito])
+            ->andFilterWhere(['like', 'reparto', $this->reparto])
             ->andFilterWhere(['like', 'codice_ticket', $this->codice_ticket])
             ->andFilterWhere(['like', 'stato', $this->stato])
             ->andFilterWhere(['like', 'priorita', $this->priorita]);
