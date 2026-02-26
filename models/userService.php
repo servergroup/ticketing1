@@ -630,6 +630,4 @@ public function sendTelegramMessage($chatId, $message)
     $response = @file_get_contents($url, false, $context);
     return $response !== false;
 }
-   
 }
-
