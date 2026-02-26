@@ -80,15 +80,56 @@ class SiteController extends Controller
         $ultimoTicket = (clone $ticketQuery)->orderBy(['data_invio' => SORT_DESC])->one();
 
         $assegnazioni = Assegnazioni::find()->where(['id_operatore' => $user->id])->all();
+
+        $isOperator = !in_array($user->ruolo, ['cliente', 'amministratore'], true);
+        $operatorAssignedTicketCodes = [];
+        $operatorAssignedTickets = [];
+        $operatorDepartmentTickets = [];
+        $operatorRecentMessages = [];
+        $operatorDepartment = null;
+
+        if ($isOperator) {
+            $operatorAssignedTicketCodes = Assegnazioni::find()
+                ->select('codice_ticket')
+                ->where(['id_operatore' => $user->id])
+                ->andWhere(['not', ['codice_ticket' => null]])
+                ->column();
+
+            if (!empty($operatorAssignedTicketCodes)) {
+                $operatorAssignedTickets = Ticket::find()
+                    ->where(['codice_ticket' => $operatorAssignedTicketCodes])
+                    ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+                    ->limit(10)
+                    ->all();
+            }
+
+            $operatorDepartment = in_array($user->ruolo, ['ict', 'itc'], true) ? 'ict' : 'sviluppo';
+            $operatorDepartmentTickets = Ticket::find()
+                ->where(['reparto' => $operatorDepartment])
+                ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+                ->limit(10)
+                ->all();
+        }
+
         $unreadMessages = 0;
         try {
             if (Yii::$app->db->schema->getTableSchema(TicketMessage::tableName(), true) !== null) {
                 $unreadMessages = (int)TicketMessage::find()
                     ->where(['recipient_id' => $user->id, 'is_read' => 0])
                     ->count();
+
+                if ($isOperator) {
+                    $operatorRecentMessages = TicketMessage::find()
+                        ->with(['sender', 'ticket'])
+                        ->where(['recipient_id' => $user->id, 'is_read' => 0])
+                        ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
+                        ->limit(10)
+                        ->all();
+                }
             }
         } catch (\Throwable $e) {
             $unreadMessages = 0;
+            $operatorRecentMessages = [];
         }
 
         $dashboardStats = [
@@ -114,18 +155,13 @@ class SiteController extends Controller
             $dashboardStats['closed'] = (int)(clone $myTickets)->andWhere(['stato' => 'chiuso'])->count();
             $dashboardStats['expired'] = (int)(clone $myTickets)->andWhere(['stato' => 'scaduto'])->count();
         } else {
-            $codiciAssegnati = Assegnazioni::find()
-                ->select('codice_ticket')
-                ->where(['id_operatore' => $user->id])
-                ->column();
-
-            if (!empty($codiciAssegnati)) {
-                $assignedTickets = Ticket::find()->where(['codice_ticket' => $codiciAssegnati]);
-                $dashboardStats['total'] = (int)(clone $assignedTickets)->count();
-                $dashboardStats['open'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'aperto'])->count();
-                $dashboardStats['in_progress'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'in lavorazione'])->count();
-                $dashboardStats['closed'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'chiuso'])->count();
-                $dashboardStats['expired'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'scaduto'])->count();
+            if (!empty($operatorAssignedTicketCodes)) {
+                $assignedTicketQuery = Ticket::find()->where(['codice_ticket' => $operatorAssignedTicketCodes]);
+                $dashboardStats['total'] = (int)(clone $assignedTicketQuery)->count();
+                $dashboardStats['open'] = (int)(clone $assignedTicketQuery)->andWhere(['stato' => 'aperto'])->count();
+                $dashboardStats['in_progress'] = (int)(clone $assignedTicketQuery)->andWhere(['stato' => 'in lavorazione'])->count();
+                $dashboardStats['closed'] = (int)(clone $assignedTicketQuery)->andWhere(['stato' => 'chiuso'])->count();
+                $dashboardStats['expired'] = (int)(clone $assignedTicketQuery)->andWhere(['stato' => 'scaduto'])->count();
             }
         }
 
@@ -137,6 +173,10 @@ class SiteController extends Controller
             'assegnazioni' => $assegnazioni,
             'dashboardStats' => $dashboardStats,
             'unreadMessages' => $unreadMessages,
+            'operatorAssignedTickets' => $operatorAssignedTickets,
+            'operatorDepartmentTickets' => $operatorDepartmentTickets,
+            'operatorRecentMessages' => $operatorRecentMessages,
+            'operatorDepartment' => $operatorDepartment,
         ]);
     }
     public function actionLogin()
