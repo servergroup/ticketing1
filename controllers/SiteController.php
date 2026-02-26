@@ -505,19 +505,37 @@ class SiteController extends Controller
 
     public function actionModifyImage()
     {
-        $account = User::findOne(['username' => Yii::$app->user->identity->username]);
+        $account = User::findOne(Yii::$app->user->id);
         $service = new userService();
 
+        if ($account === null) {
+            Yii::$app->session->setFlash('error', 'Profilo utente non trovato.');
+            return $this->redirect(['account']);
+        }
+
         if (Yii::$app->request->isPost) {
-            // Prendi il file dall'input del modello $account (campo 'immagine')
             $file = \yii\web\UploadedFile::getInstance($account, 'immagine');
+            if ($file === null) {
+                $file = \yii\web\UploadedFile::getInstanceByName('User[immagine]');
+            }
 
             if ($file === null) {
                 Yii::$app->session->setFlash('error', 'Nessun file caricato.');
                 return $this->redirect(['account']);
             }
 
-            // Chiama il service passando l'account e l'UploadedFile
+            $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
+            $ext = strtolower($file->extension ?: pathinfo($file->name, PATHINFO_EXTENSION));
+            if (!in_array($ext, $allowedExt, true)) {
+                Yii::$app->session->setFlash('error', 'Formato non valido. Usa JPG, PNG o WEBP.');
+                return $this->redirect(['account']);
+            }
+
+            if ((int)$file->size > (5 * 1024 * 1024)) {
+                Yii::$app->session->setFlash('error', 'File troppo grande. Dimensione massima 5 MB.');
+                return $this->redirect(['account']);
+            }
+
             if ($service->modifyImmagine($account, $file)) {
                 Yii::$app->session->setFlash('success', 'Immagine modificata con successo.');
             } else {

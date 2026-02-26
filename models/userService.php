@@ -346,64 +346,75 @@ public function modifyPassword($password, $token)
     // =========================
     // MODIFICA IMMAGINE PROFILO
     // =========================
-/** * @param \app\models\User $user 
- * * @param UploadedFile $file 
- * * @return bool */ 
-public function modifyImmagine($user, UploadedFile $file) {
-     if (!$user || !$file) { 
-        return false; 
-        } 
-        // Permessi/estensioni consentite (adatta se vuoi altri tipi) 
-        $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg']; 
-        $ext = strtolower($file->extension ?: pathinfo($file->name, PATHINFO_EXTENSION)); 
-        if (!in_array($ext, $allowedExtensions, true)) { 
-            Yii::error("Estensione non consentita: {$ext}"); 
-            return false; 
-            } 
-            // Directory di destinazione (filesystem) 
-            $uploadDir = Yii::getAlias('@web/img/upload'); 
-            // Crea la cartella se non esiste 
-            if (!is_dir($uploadDir)) { 
-                if (!mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) { 
-                    Yii::error("Impossibile creare la cartella upload: {$uploadDir}");
-                     return false; 
-                     } 
-                     } 
-                     // Controlla scrivibilità 
-                     if (!is_writable($uploadDir)) { 
-                        // prova a cambiare permessi (attenzione in produzione) 
-                        @chmod($uploadDir, 0755); 
-                        if (!is_writable($uploadDir)) { 
-                            Yii::error("Cartella upload non scrivibile: {$uploadDir}");
-                            return false; 
-                            } 
-                            } // Genera nome file sicuro 
-                            $fileName = Yii::$app->security->generateRandomString(16) . '.' . $ext; $fullPath = $uploadDir . DIRECTORY_SEPARATOR . $fileName; 
-                            // Salva il file (usa saveAs che usa internamente move_uploaded_file) 
-                            try { 
-                                if (!$file->saveAs($fullPath)) { 
-                                    Yii::error("Salvataggio file fallito: {$fullPath}"); return false; 
-                                    } 
-                                    } catch (\Throwable $e) {
-                                         Yii::error("Eccezione durante saveAs: " . $e->getMessage()); return false; 
-                                         } // (Opzionale) rimuovi immagine precedente se presente e non è default
-                                          if (!empty($user->immagine)) { 
-                                            $old = Yii::getAlias('@web/img/upload/' . $user->immagine); if (is_file($old) && is_writable($old)) { @unlink($old); 
-                                            } 
-                                            } 
-                                            // Salva il nome file nel modello (solo attributo immagine) 
-                                            $user->immagine = $fileName; 
-                                            if ($user->save(false, ['immagine'])) { 
-                                                return true; 
-                                                } else { 
-                                                    // rollback: elimina file appena salvato se il DB non si aggiorna 
-                                                    if (is_file($fullPath)) { 
-                                                        @unlink($fullPath); 
-                                                        } 
-                                                        Yii::error('Impossibile salvare il modello User con la nuova immagine.'); 
-                                                        return false; 
-                                                        } 
-                                                        } 
+    /**
+     * @param \app\models\User $user
+     * @param UploadedFile $file
+     * @return bool
+     */
+    public function modifyImmagine($user, UploadedFile $file)
+    {
+        if (!$user || !$file) {
+            return false;
+        }
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        $ext = strtolower($file->extension ?: pathinfo($file->name, PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowedExtensions, true)) {
+            Yii::warning("Estensione non consentita: {$ext}", __METHOD__);
+            return false;
+        }
+
+        $maxSize = 5 * 1024 * 1024;
+        if ((int)$file->size > $maxSize) {
+            Yii::warning("File troppo grande: {$file->size} bytes", __METHOD__);
+            return false;
+        }
+
+        $uploadDir = Yii::getAlias('@webroot/img/upload');
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            Yii::error("Impossibile creare la cartella upload: {$uploadDir}", __METHOD__);
+            return false;
+        }
+
+        if (!is_writable($uploadDir)) {
+            @chmod($uploadDir, 0755);
+            if (!is_writable($uploadDir)) {
+                Yii::error("Cartella upload non scrivibile: {$uploadDir}", __METHOD__);
+                return false;
+            }
+        }
+
+        $fileName = Yii::$app->security->generateRandomString(20) . '.' . $ext;
+        $fullPath = $uploadDir . DIRECTORY_SEPARATOR . $fileName;
+        $oldImage = $user->immagine;
+
+        try {
+            if (!$file->saveAs($fullPath, false)) {
+                Yii::error("Salvataggio file fallito: {$fullPath}", __METHOD__);
+                return false;
+            }
+        } catch (\Throwable $e) {
+            Yii::error("Eccezione durante upload immagine: " . $e->getMessage(), __METHOD__);
+            return false;
+        }
+
+        $user->immagine = $fileName;
+        if ($user->save(false, ['immagine'])) {
+            if (!empty($oldImage) && $oldImage !== $fileName) {
+                $oldPath = $uploadDir . DIRECTORY_SEPARATOR . $oldImage;
+                if (is_file($oldPath) && is_writable($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+            return true;
+        }
+
+        if (is_file($fullPath)) {
+            @unlink($fullPath);
+        }
+        Yii::error('Impossibile salvare il modello User con la nuova immagine.', __METHOD__);
+        return false;
+    }
 
     // =========================
     // MODIFICA TURNI
@@ -621,3 +632,4 @@ public function sendTelegramMessage($chatId, $message)
 }
    
 }
+

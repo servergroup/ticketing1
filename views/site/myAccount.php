@@ -1,15 +1,12 @@
 <?php
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
-use app\models\User;
-
-$user = User::findOne(Yii::$app->user->identity->id);
 /* @var $this yii\web\View */
 /* @var $account app\models\User */
 
-$imageUrl = $user->immagine
-    ? Yii::getAlias('@web/img/upload/' . $user->immagine)
-    : Yii::getAlias('@web/img/avatar-placeholder.png');
+$imageUrl = $account->immagine
+    ? Yii::getAlias('@web/img/upload/' . $account->immagine)
+    : Yii::getAlias('@web/img/profile.png');
 ?>
 
 <div class="profile-shell">
@@ -43,7 +40,7 @@ $imageUrl = $user->immagine
             <?php endif; ?>
         </section>
 
-        <section class="profile-card actions-card" id="s">
+        <section class="profile-card actions-card">
             <h2>Azioni rapide</h2>
 
             <?php $form = ActiveForm::begin([
@@ -52,21 +49,22 @@ $imageUrl = $user->immagine
             ]); ?>
 
             <?= $form->field($account, 'immagine')->fileInput([
-                'accept' => 'image/*',
+                'accept' => '.jpg,.jpeg,.png,.webp',
                 'id' => 'upload-img',
                 'style' => 'display:none',
             ])->label(false) ?>
 
             <?= Html::button('Modifica immagine', [
                 'class' => 'profile-btn profile-btn-primary',
-                'id' => 's',
+                'id' => 'btn-change-image',
                 'type' => 'button',
             ]) ?>
+            <small class="text-muted d-block mb-2">Formati supportati: JPG, PNG, WEBP. Dimensione massima: 5 MB.</small>
 
-            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost','id'=>'s']) ?>
+            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost']) ?>
             <?= Html::a('Modifica password', ['site/mail'], ['class' => 'profile-btn profile-btn-ghost']) ?>
 
-            <?php if (!$user->is_totp_enabled): ?>
+            <?php if (!$account->is_totp_enabled): ?>
                 <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
             <?php else: ?>
                 <?= Html::a('Disattiva 2FA', ['site/disable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
@@ -95,9 +93,27 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     fileInput.addEventListener('change', function () {
-        if (fileInput.files && fileInput.files.length > 0) {
-            form.submit();
+        if (!fileInput.files || fileInput.files.length === 0) {
+            return;
         }
+
+        const file = fileInput.files[0];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024;
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Formato non supportato. Usa JPG, PNG o WEBP.');
+            fileInput.value = '';
+            return;
+        }
+
+        if (file.size > maxSize) {
+            alert('File troppo grande. Dimensione massima: 5 MB.');
+            fileInput.value = '';
+            return;
+        }
+
+        form.submit();
     });
 });
 </script>
@@ -183,10 +199,6 @@ document.addEventListener('DOMContentLoaded', function () {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-}
-
-#s{
-    gap:20px;
 }
 
 .profile-card {
