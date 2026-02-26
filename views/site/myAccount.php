@@ -1,111 +1,86 @@
 <?php
-use yii\widgets\DetailView;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use app\models\User;
 
-$user=User::findOne(Yii::$app->user->identity->id);
+$user = User::findOne(Yii::$app->user->identity->id);
 /* @var $this yii\web\View */
 /* @var $account app\models\User */
 
-$imageUrl = $account->immagine
-    ? Yii::getAlias('@web/uploads/' . $account->immagine)
+$imageUrl = $user->immagine
+    ? Yii::getAlias('@web/img/upload/' . $user->immagine)
     : Yii::getAlias('@web/img/avatar-placeholder.png');
 ?>
 
-<h1 style="text-align:center;margin-top:10px; margin-bottom:50px;">Il mio account</h1>
-
-<?php $form = ActiveForm::begin([
-    'action' => ['site/modify-image'],
-    'options' => ['enctype' => 'multipart/form-data', 'id' => 'form-image'],
-]); ?>
-
-<?= DetailView::widget([
-    'model' => $account,
-    'options' => ['class' => 'table table-bordered'],
-    'attributes' => [
-        [
-         'label'=>'',   
-            'format' => 'raw',
-            'value' => function($model) use ($imageUrl) {
-                return Html::tag('div',
-                    Html::img($imageUrl, ['class' => 'profile-pic', 'alt' => Html::encode($model->nome . ' ' . $model->cognome)]),
-                    ['class' => 'profile-pic-wrapper']
-                );
-            },
-            'contentOptions' => ['style' => 'text-align:center;'],
-        ],
-        [
-            'attribute' => 'nome',
-            'label' => 'Nome',
-            'format' => 'text',
-            'value' => function($m){ return Html::encode($m->nome); },
-            'contentOptions' => ['style' => 'text-align:center;'],
-        ],
-        [
-            'attribute' => 'cognome',
-            'label' => 'Cognome',
-            'format' => 'text',
-            'value' => function($m){ return Html::encode($m->cognome); },
-            'contentOptions' => ['style' => 'text-align:center;'],
-        ],
-        [
-            'attribute' => 'email',
-            'label' => 'Email',
-            'format' => 'email',
-            'value' => function($m){ return Html::encode($m->email); },
-            'contentOptions' => ['style' => 'text-align:center;'],
-        ],
-        [
-            'attribute' => 'ruolo',
-            'label' => 'Ruolo',
-            'format' => 'text',
-            'value' => function($m){ return Html::encode($m->ruolo); },
-            'contentOptions' => ['style' => 'text-align:center;'],
-        ],
-        [
-            'attribute' => 'partita_iva',
-            'label' => 'Partita IVA',
-            'format' => 'text',
-            'value' => function($m){ return Html::encode($m->partita_iva); },
-            'contentOptions' => ['style' => 'text-align:center;'],
-            'visible' => (Yii::$app->user->identity->ruolo === 'cliente'),
-        ],
-    ],
-]) ?>
-
-    <!-- input file nascosto collegato al form ActiveForm -->
-    <?= $form->field($account, 'immagine')->fileInput([
-        'accept' => 'image/*',
-        'id' => 'upload-img',
-        'style' => 'display:none'
-    ])->label(false) ?>
-
-    <div class="mt-3 text-center">
-        <!-- Bottone che apre il selettore file -->
-        <?= Html::button('Modifica immagine', [
-            'class' => 'btn btn-primary me-2',
-            'id' => 'btn-change-image',
-            'type' => 'button'
-        ]) ?>
-
-        
-        <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'btn btn-outline-primary me-2']) ?>
-        <?= Html::a('Modifica password', ['site/mail'], ['class' => 'btn btn-outline-primary']) ?>
-        <?php if(!$user->is_totp_enabled):?>
-        <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'btn btn-warning']) ?>
-        <?php else: ?>
-            <?= Html::a('Disattiva 2FA', ['site/disable-2fa'], ['class' => 'btn btn-warning']) ?>
-<?php endif; ?>
-        <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
-            <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'btn btn-outline-secondary ms-2']) ?>
-        <?php endif; ?>
+<div class="profile-shell">
+    <div class="profile-head">
+        <div class="profile-avatar-wrap">
+            <img src="<?= Html::encode($imageUrl) ?>" class="profile-avatar" alt="<?= Html::encode($account->nome . ' ' . $account->cognome) ?>">
+        </div>
+        <div class="profile-head-text">
+            <h1><?= Html::encode($account->nome . ' ' . $account->cognome) ?></h1>
+            <p>@<?= Html::encode($account->username) ?></p>
+            <span class="profile-role"><?= Html::encode($account->ruolo) ?></span>
+        </div>
     </div>
 
-<?php ActiveForm::end(); ?>
-        
+    <div class="profile-grid">
+        <section class="profile-card">
+            <h2>Dati account</h2>
+            <div class="info-row">
+                <span>Email</span>
+                <strong><?= Html::encode($account->email ?: '-') ?></strong>
+            </div>
+            <div class="info-row">
+                <span>Telegram User</span>
+                <strong><?= Html::encode($account->recapito_telefonico ?: '-') ?></strong>
+            </div>
+            <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
+                <div class="info-row">
+                    <span>Partita IVA</span>
+                    <strong><?= Html::encode($account->partita_iva ?: '-') ?></strong>
+                </div>
+            <?php endif; ?>
+        </section>
 
-<!-- JS: apre file dialog e invia il form automaticamente dopo la selezione -->
+        <section class="profile-card actions-card" id="s">
+            <h2>Azioni rapide</h2>
+
+            <?php $form = ActiveForm::begin([
+                'action' => ['site/modify-image'],
+                'options' => ['enctype' => 'multipart/form-data', 'id' => 'form-image'],
+            ]); ?>
+
+            <?= $form->field($account, 'immagine')->fileInput([
+                'accept' => 'image/*',
+                'id' => 'upload-img',
+                'style' => 'display:none',
+            ])->label(false) ?>
+
+            <?= Html::button('Modifica immagine', [
+                'class' => 'profile-btn profile-btn-primary',
+                'id' => 's',
+                'type' => 'button',
+            ]) ?>
+
+            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost','id'=>'s']) ?>
+            <?= Html::a('Modifica password', ['site/mail'], ['class' => 'profile-btn profile-btn-ghost']) ?>
+
+            <?php if (!$user->is_totp_enabled): ?>
+                <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
+            <?php else: ?>
+                <?= Html::a('Disattiva 2FA', ['site/disable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
+            <?php endif; ?>
+
+            <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
+                <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'profile-btn profile-btn-ghost']) ?>
+            <?php endif; ?>
+
+            <?php ActiveForm::end(); ?>
+        </section>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('btn-change-image');
@@ -126,3 +101,208 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+<style>
+.profile-shell {
+    --bg-a: #edf6ff;
+    --bg-b: #dceeff;
+    --card: #ffffff;
+    --line: #d8e6f3;
+    --ink: #16324a;
+    --muted: #65839b;
+    --accent: #1d8ddb;
+    --accent-soft: #e5f3ff;
+    --warn: #ffb020;
+    max-width: 1020px;
+    margin: 18px auto;
+    padding: 24px;
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at 8% 14%, #ffffffc9 0, #ffffff00 35%),
+        linear-gradient(140deg, var(--bg-a), var(--bg-b));
+    border: 1px solid #c9deef;
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.profile-grid{
+    gap:10px;
+}
+
+
+.profile-head {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+    border-radius: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+}
+
+.profile-avatar-wrap {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #1d8ddb, #45c2ff);
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+.profile-head-text h1 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 28px;
+    letter-spacing: 0.2px;
+}
+
+.profile-head-text p {
+    margin: 6px 0 10px;
+    color: var(--muted);
+    font-size: 15px;
+}
+
+.profile-role {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: #0f6fac;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.profile-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+#s{
+    gap:20px;
+}
+
+.profile-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+}
+
+.profile-card h2 {
+    margin: 0 0 14px;
+    color: var(--ink);
+    font-size: 20px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px dashed #d7e7f7;
+}
+
+.info-row:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.info-row span {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.info-row strong {
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: right;
+}
+
+.actions-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.profile-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+
+.profile-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px #1d8ddb1f;
+    text-decoration: none;
+}
+
+.profile-btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.profile-btn-primary:hover {
+    color: #fff;
+    filter: brightness(1.02);
+}
+
+.profile-btn-ghost {
+    border-color: #c7ddef;
+    background: #f7fbff;
+    color: #1d4f73;
+}
+
+.profile-btn-warning {
+    background: #fff8e8;
+    border-color: #ffd68a;
+    color: #8d5e00;
+}
+
+@media (max-width: 820px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .profile-shell {
+        border-radius: 0;
+        margin: 0;
+        padding: 14px;
+    }
+
+    .profile-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .profile-head-text h1 {
+        font-size: 24px;
+    }
+
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .info-row strong {
+        text-align: left;
+    }
+}
+</style>

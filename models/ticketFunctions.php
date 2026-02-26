@@ -79,7 +79,7 @@ class ticketFunctions extends Model
         }
 
         $ticket->problema = $problema;
-        $ticket->ambito = $ambito;
+        $ticket->reparto = $ambito;
         $ticket->stato = 'aperto';
         $ticket->codice_ticket = (string)$this->code_random();
         $ticket->scadenza = $scadenza ?? null;
@@ -108,7 +108,7 @@ class ticketFunctions extends Model
         if (!$ticket) {
             return false;
         }
-        $ticket->stato = 'risolto';
+        $ticket->stato = 'chiuso';
         $tempi->chiuso_il=date('Y-m-d H:i:s');
         $tempi->ora_fine=date('H:i:s');
         $tempi->save();
@@ -235,7 +235,7 @@ class ticketFunctions extends Model
         $assegnazioni = new Assegnazioni();
         $assegnazioni->id_operatore = (int)$operatoreId;
         $assegnazioni->codice_ticket = $codice_ticket;
-        $assegnazioni->ambito = $ambito;
+        $assegnazioni->reparto = $ambito;
 
         $ticket->stato = 'in lavorazione';
 

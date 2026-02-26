@@ -9,19 +9,22 @@ use app\models\ErrorLog;
 /**
  * ErrorLogSearch represents the model behind the search form of `app\models\ErrorLog`.
  */
-class ErrorLogSearch extends ErrorLog
+class ErrorLogSearch extends ErrorLogHttp
 {
     public function rules()
     {
         return [
-            [['id', 'code', 'line', 'user_id', 'status_code', 'is_handled'], 'integer'],
-            [['type', 'message', 'file', 'url', 'user_ip', 'request_method', 'created_at'], 'safe'],
+            [['response_http', 'message'], 'required'],
+            [['response_http'], 'string', 'max' => 10],
+            [['message'], 'string'],
+            [['id_cliente'], 'integer'],
+            [['rotta'], 'string', 'max' => 500],
         ];
     }
 
     public function search($params)
     {
-        $query = ErrorLog::find();
+        $query = ErrorLogHttp::find();
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,

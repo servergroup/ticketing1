@@ -4,9 +4,6 @@ use app\models\User;
 /** @var yii\web\View $this */
 /** @var app\models\Ticket[] $ticket */
 ?>
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <h1 class="text-center">Stato dei ticket di reparto</h1>
 <p class="text-center">Qui vedrai lo stato dei  ticket del tuo reparto </p>
 
@@ -62,10 +59,10 @@ use app\models\User;
                     <td><?= Html::encode($ticket_item->problema); ?></td>
                     <td><?= Html::encode($ticket_item->stato); ?></td>
                     <td>  
-                    <?= Html::a('<img src='.Yii::getAlias('@web/img/delete.png').'>',['ticket/delete-ticket','id'=>$ticket_item->id]) ?>
+                    <?= Html::a('<img src='.Yii::getAlias('@web/img/delete.png').'>',['tickets/delete-ticket','id'=>$ticket_item->id]) ?>
                     <?= Html::a(
     Html::img(Yii::getAlias('@web/img/pen.png')),
-    ['ticket/modify-ticket', 'codiceTicket' => $ticket_item->codice_ticket]
+    ['tickets/modify-ticket', 'codiceTicket' => $ticket_item->codice_ticket]
 ) ?>
 
 

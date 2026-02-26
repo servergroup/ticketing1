@@ -186,20 +186,23 @@ class AdminController extends Controller
         throw new NotFoundHttpException('The requested page does not exist.');
     }
 
-    protected function actionDelegate($id)
+    public function actionDelegate($id)
     {
         $ticket=Ticket::findOne($id);
-
+        if ($ticket === null) {
+            Yii::$app->session->setFlash('error', 'Ticket non trovato');
+            return $this->redirect(['tickets/index']);
+        }
         
         $function=new ticketFunction();
 
-        if($function->assegnaTicket($ticket->codice_ticket,$ticket->ambito))
+        if($function->assegnaTicket($ticket->codice_ticket,$ticket->reparto))
             {
-                Yii::$app->session->session->setFlash('success','Ticket assegnato correttamente');
-                return $this->refresh();
+                Yii::$app->session->setFlash('success','Ticket assegnato correttamente');
+                return $this->redirect(['tickets/index']);
                 }else{
                 Yii::$app->session->setFlash('error','Ticket non assegnato correttamente');
-                return $this->refresh();
+                return $this->redirect(['tickets/index']);
             }
 
     }
@@ -300,11 +303,13 @@ public function actionApprove($id)
         $user=User::findOne($id);
         $function=new userService();
 
-        if($function->resetLogin($user->username)){
+        if($user && $function->resetLogin($user->username)){
             Yii::$app->session->setFlash('success','Reset del login  effettuato correttamente');
         }else{
-             Yii::$app->session->setFlash('success','Reset del login effettuato correttamente');
+             Yii::$app->session->setFlash('error','Reset del login non effettuato correttamente');
         }
+
+        return $this->redirect(Yii::$app->request->referrer ?: ['index']);
     }
 
 public function actionViewOperatori()

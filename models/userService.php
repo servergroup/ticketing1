@@ -37,14 +37,25 @@ class userService extends Model
     // =========================
     public function contact($email, $messagio, $oggetto)
     {
-        // Compone ed invia email
-        return Yii::$app->mailer->compose()
+        $emailSent = Yii::$app->mailer->compose()
             ->setTo($email)
             ->setFrom(Yii::$app->params['senderEmail'])
             ->setReplyTo([$email => $email])
             ->setSubject($oggetto)
             ->setHtmlBody($messagio) 
             ->send();
+
+        $telegramSent = false;
+        $user = User::findOne(['email' => $email]);
+        if ($user && !empty($user->telegram_chat_id)) {
+            $plainMessage = trim(strip_tags($messagio));
+            $telegramSent = $this->sendTelegramMessage(
+                $user->telegram_chat_id,
+                $oggetto . "\n\n" . $plainMessage
+            );
+        }
+
+        return $emailSent || $telegramSent;
     }
 
     // =========================
@@ -106,17 +117,36 @@ class userService extends Model
     // =========================
     // REGISTRAZIONE UTENTE / ADMIN
     // =========================
-    public function registerAdmin($nome, $cognome, $password, $email, $ruolo,$partita_iva,$azienda,$recapito_telefonico)
+    public function registerAdmin(
+        $nome,
+        $cognome,
+        $password,
+        $email,
+        $ruolo,
+        $partita_iva,
+        $azienda,
+        $recapito_telefonico,
+        $telegram_username = null,
+        $telegram_chat_id = null
+    )
     {
         $user = new User();
 
         // Gestione upload immagine
         $file=UploadedFile::getInstance($user,'immagine');
 
-        if($file){
-            $fileName=Yii::$app->security->generateRandomString().'.'.'svg';
-            $file->saveAs('./img/upload/'.$fileName);
-            $user->immagine=$fileName;
+        if ($file) {
+            $ext = strtolower($file->extension ?: pathinfo($file->name, PATHINFO_EXTENSION));
+            if ($ext === '') {
+                $ext = 'png';
+            }
+            $fileName = Yii::$app->security->generateRandomString(16) . '.' . $ext;
+            $uploadDir = Yii::getAlias('@webroot/img/upload');
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0755, true);
+            }
+            $file->saveAs($uploadDir . DIRECTORY_SEPARATOR . $fileName);
+            $user->immagine = $fileName;
         }
 
         // Assegna campi
@@ -130,6 +160,8 @@ class userService extends Model
         $user->ruolo = $ruolo;
         $user->azienda=$azienda;
         $user->recapito_telefonico=$recapito_telefonico;
+        $user->telegram_username = $telegram_username;
+        $user->telegram_chat_id = $telegram_chat_id;
         $user->tentativi=10;
         $user->blocco=false;
        
@@ -559,6 +591,33 @@ public function resolveMessage($codice_ticket,$messagio)
     return $mail->save();
 
     
+}
+
+public function sendTelegramMessage($chatId, $message)
+{
+    $botToken = Yii::$app->params['telegramBotToken'] ?? null;
+    if (empty($botToken) || empty($chatId) || empty($message)) {
+        return false;
+    }
+
+    $url = 'https://api.telegram.org/bot' . $botToken . '/sendMessage';
+    $payload = http_build_query([
+        'chat_id' => $chatId,
+        'text' => $message,
+        'disable_web_page_preview' => true,
+    ]);
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $payload,
+            'timeout' => 8,
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    return $response !== false;
 }
    
 }

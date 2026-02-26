@@ -1,236 +1,132 @@
 <?php
+
+use app\models\TicketMessage;
 use yii\helpers\Html;
-?>
-<aside class="main-sidebar sidebar-dark-primary elevation-4" style="border-radius:10px !important">
 
-<div class="zona-logo" style="background-color:white;">
-    <!-- Brand Logo -->
-    <a href="#" class="brand-link">
-        
-        <span class="brand-text font-weight-light" oncontextmenu="return false;"><img src="<?= Yii::getAlias('@web/img/taglio_dataseed.svg') ?>" width="190px"></span>
-    </a> 
-</div>
-    <div class="sidebar">
+$identity = Yii::$app->user->identity;
+$ruolo = $identity->ruolo;
+$unreadMessages = 0;
+try {
+    if (Yii::$app->db->schema->getTableSchema(TicketMessage::tableName(), true) !== null) {
+        $unreadMessages = (int)TicketMessage::find()
+            ->where(['recipient_id' => $identity->id, 'is_read' => 0])
+            ->count();
+    }
+} catch (\Throwable $e) {
+    $unreadMessages = 0;
+}
 
-        <!-- User panel -->
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-            <?php
-            if(Yii::$app->user->identity->immagine!=null && Yii::$app->user->identity->immagine !='' )
-                {
-            ?>
-            
-            <div class="image">
-                <img id='logo_utente' src='<?=Yii::getAlias('@web/img/upload/'.Yii::$app->user->identity->immagine)?>' class="img-circle elevation-2" alt="User Image">
-           
-            </div>
-            <?php
-}else{
-?>
- <div class="image">
-                <img src=<?= Yii::getAlias('@web/img/profile.png') ?>
-                     class="img-circle elevation-2" alt="User Image">
-            </div>
+$avatarPath = Yii::getAlias('@web/img/profile.png');
+if (!empty($identity->immagine)) {
+    $avatarPath = Yii::getAlias('@web/img/upload/' . $identity->immagine);
+}
 
-<?php
+$messageLabel = 'Ricevuti';
+if ($unreadMessages > 0) {
+    $messageLabel .= ' <span class="badge badge-warning right">' . $unreadMessages . '</span>';
+}
+
+$communicationMenu = [
+    'label' => 'Messaggi',
+    'icon' => 'fas fa-comments',
+    'items' => [
+        ['label' => $messageLabel, 'icon' => 'fas fa-inbox', 'url' => ['messages/index']],
+        ['label' => 'Inviati', 'icon' => 'fas fa-paper-plane', 'url' => ['messages/index', 'box' => 'sent']],
+        ['label' => 'Nuovo messaggio', 'icon' => 'fas fa-pen', 'url' => ['messages/compose']],
+    ],
+];
+
+$menuItems = [];
+
+if ($ruolo === 'amministratore') {
+    $menuItems = [
+        ['label' => 'Dashboard', 'icon' => 'fas fa-home', 'url' => ['site/index']],
+        [
+            'label' => 'Ticket',
+            'icon' => 'fas fa-ticket-alt',
+            'items' => [
+                ['label' => 'Tutti i ticket', 'icon' => 'fas fa-list', 'url' => ['tickets/index']],
+                ['label' => 'Ticket aperti', 'icon' => 'fas fa-folder-open', 'url' => ['tickets/open']],
+                ['label' => 'In lavorazione', 'icon' => 'fas fa-tools', 'url' => ['tickets/lavorazione']],
+                ['label' => 'Ticket chiusi', 'icon' => 'fas fa-check', 'url' => ['tickets/close']],
+                ['label' => 'Ticket scaduti', 'icon' => 'fas fa-exclamation-triangle', 'url' => ['tickets/scadence']],
+                ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
+                ['label' => 'Tempi ticket', 'icon' => 'fas fa-clock', 'url' => ['tempi/index']],
+            ],
+        ],
+        [
+            'label' => 'Gestione utenti',
+            'icon' => 'fas fa-users',
+            'items' => [
+                ['label' => 'Nuovo operatore/admin', 'icon' => 'fas fa-user-plus', 'url' => ['site/register']],
+                ['label' => 'Utenti in attesa', 'icon' => 'fas fa-user-clock', 'url' => ['admin/attese']],
+                ['label' => 'Utenti bloccati', 'icon' => 'fas fa-user-slash', 'url' => ['admin/block']],
+                ['label' => 'Verifica ruoli', 'icon' => 'fas fa-user-shield', 'url' => ['admin/verify-ruolo']],
+            ],
+        ],
+        $communicationMenu,
+    ];
+} elseif (in_array($ruolo, ['ict', 'itc', 'developer'], true)) {
+    $menuItems = [
+        ['label' => 'Dashboard', 'icon' => 'fas fa-home', 'url' => ['site/index']],
+        [
+            'label' => 'Ticket',
+            'icon' => 'fas fa-ticket-alt',
+            'items' => [
+                ['label' => 'Ticket assegnati', 'icon' => 'fas fa-briefcase', 'url' => ['assegnazioni/my-ticket']],
+                ['label' => 'Ticket reparto', 'icon' => 'fas fa-layer-group', 'url' => ['tickets/my-reparto']],
+                ['label' => 'Ticket reparto aperti', 'icon' => 'fas fa-folder-open', 'url' => ['tickets/my-reparto-open']],
+            ],
+        ],
+        $communicationMenu,
+    ];
+} elseif ($ruolo === 'cliente') {
+    $menuItems = [
+        ['label' => 'Dashboard', 'icon' => 'fas fa-home', 'url' => ['site/index']],
+        [
+            'label' => 'Ticket',
+            'icon' => 'fas fa-ticket-alt',
+            'items' => [
+                ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
+                ['label' => 'I miei ticket', 'icon' => 'fas fa-history', 'url' => ['tickets/my-ticket']],
+            ],
+        ],
+        ['label' => 'Contattaci', 'icon' => 'fas fa-life-ring', 'url' => ['site/contact']],
+        $communicationMenu,
+    ];
 }
 ?>
-            <div class="info">
-                <a href="/site/account" class="d-block">
-                    <?= Yii::$app->user->isGuest ? 'Ospite' : Yii::$app->user->identity->username ?>
-                </a>
-    
+
+<aside class="main-sidebar sidebar-dark-primary elevation-3 corporate-sidebar">
+    <a href="<?= \yii\helpers\Url::to(['site/index']) ?>" class="brand-link corporate-brand">
+        <img src="<?= Yii::getAlias('@web/img/taglio_dataseed.png') ?>" alt="Dataseed">
+    </a>
+
+    <div class="sidebar">
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center corporate-user">
+            <div class="image">
+                <img src="<?= Html::encode($avatarPath) ?>" class="img-circle elevation-2" alt="Avatar utente">
             </div>
-                                     <?= Html::a(
-        '<img src="'.Yii::getAlias('@web/img/logout.png').'" style="width:30px;margin-left:100px;">',
-        ['site/logout'],
-        ['class' => 'logout']
-    ) ?>
+            <div class="info pr-2">
+                <a href="<?= \yii\helpers\Url::to(['site/account']) ?>" class="d-block">
+                    <?= Html::encode($identity->username) ?>
+                </a>
+                <small class="text-muted text-uppercase"><?= Html::encode($ruolo) ?></small>
+            </div>
+            <div class="ml-auto">
+                <?= Html::a('<i class="fas fa-sign-out-alt"></i>', ['site/logout'], [
+                    'class' => 'btn btn-tool text-white',
+                    'title' => 'Logout',
+                    'data-method' => 'post',
+                ]) ?>
+            </div>
         </div>
 
-        <!-- Sidebar Menu -->
         <nav class="mt-2">
-
-            <?php
-            if (Yii::$app->user->isGuest) {
-                return;
-            }
-
-            $ruolo = Yii::$app->user->identity->ruolo;
-            $menuItems = [];
-
-            /* ============================
-               AMMINISTRATORE
-            ============================ */
-            if ($ruolo === 'amministratore') {
-                $menuItems = [
-
-                    ['label' => 'Home', 'icon' => 'fas fa-home', 'url' => ['site/index']],
-
-                    [
-                        'label' => 'Ticket',
-                        'icon' => 'fas fa-ticket-alt',
-                        'items' => [
-                            ['label' => 'Tutti i ticket', 'icon' => 'fas fa-list', 'url' => ['tickets/index']],
-                            ['label' => 'Ticket aperti', 'icon' => 'fas fa-exclamation-circle', 'url' => ['tickets/open']],
-                            ['label' => 'Ticket chiusi', 'icon' => 'fas fa-check', 'url' => ['tickets/close']],
-                             ['label' => 'Ticket scaduti', 'icon' => 'fas fa-check', 'url' => ['tickets/scadence']],
-                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
-                             ['label' => 'Tempi del ticket', 'icon' => 'fas fa-ticket-alt', 'url' => ['tempi/index']],
-                           
-                        ]
-                    ],
-
-                    [
-                        'label' => 'Gestione utenti',
-                        'icon' => 'fas fa-user-alt',
-                        'items' => [
-                    ['label' => 'Nuovo operatore/amministratore', 'icon' => 'fas fa-user-plus', 'url' => ['site/register']],
-                    ['label' => 'Utenti in attesa', 'icon' => 'fas fa-user-clock', 'url' => ['admin/attese']],
-                    ['label' => 'Utenti bloccati', 'icon' => 'fas fa-user-slash', 'url' => ['admin/block']],
-                    
-
-                        ]
-                    ],
-
-                    [
-                        'label'=>'Dipendenti',
-                        'icon'=>'fas fa-user-alt',
-                        'items'=>[
-                    ['label' => 'Gestione operatori', 'icon' => 'fas fa-plus', 'url' => ['admin/index']],
-                     ['label' => 'Verifica i ruoli', 'icon' => 'fas fa-plus', 'url' => ['admin/verify-ruolo']],
-                     
-                ]
-                    ],
-                   
-                ];             
-            }
-
-            /*  ============================
-               |            ICT             |
-                ============================ */
-            else if ($ruolo === 'ict') {
-                $menuItems = [
-
-                    ['label' => 'Home', 'icon' => 'fas fa-home', 'url' => ['site/index']],
-
-                    [
-                        'label' => 'Ticket',
-                        'icon' => 'fas fa-ticket-alt',
-                        'items' => [
-                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['assegnazioni/my-ticket']],
-                             ['label' => 'Ticket del mio reparto', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto']],
-                             ['label' => 'Ticket del mio reparto aperti', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto-open']],
-                        ]
-                    ],
-
-                    
-                ];
-            }
-
-            /* ============================
-               CLIENTE
-            ============================ */
-            else if ($ruolo === 'cliente') {
-                $menuItems = [
-
-                    ['label' => 'Home', 'icon' => 'fas fa-home', 'url' => ['site/index']],
-
-                    [
-                        'label' => 'Ticket',
-                        'icon' => 'fas fa-ticket-alt',
-                        'items' => [
-                            ['label' => 'Nuovo ticket', 'icon' => 'fas fa-plus', 'url' => ['tickets/new-ticket']],
-                            ['label' => 'Evoluzione ticket', 'icon' => 'fas fa-history', 'url' => ['tickets/my-ticket']],
-                        ]
-                    ],
-                    ['label' => 'Contattaci', 'icon' => 'fas fa-contact', 'url' => ['site/contact']],
-                ];
-            }
-
-            /* =============================
-               DEVELOPER
-              ============================= */
-            else if ($ruolo === 'developer') {
-                $menuItems = [
-
-                    ['label' => 'Home', 'icon' => 'fas fa-home', 'url' => ['site/index']],
-
-                    [
-                        'label' => 'Ticket',
-                        'icon' => 'fas fa-ticket-alt',
-                        'items' => [
-                            ['label' => 'Ticket assegnati', 'icon' => 'fas fa-file-alt', 'url' => ['assegnazioni/my-ticket']],
-                            ['label' => 'Ticket del mio reparto', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto']],
-                             ['label' => 'Ticket del mio reparto aperti', 'icon' => 'fas fa-file-alt', 'url' => ['ticket/my-reparto-open']],
-                        ]
-                    ],
-
-                   
-                   
-                ];
-            }
-
-            echo \hail812\adminlte\widgets\Menu::widget([
+            <?= \hail812\adminlte\widgets\Menu::widget([
                 'encodeLabels' => false,
                 'items' => $menuItems,
-            ]);
-            ?>
-
+            ]) ?>
         </nav>
     </div>
 </aside>
-
-<style>
-/* Arrotonda e migliora l'immagine utente */
-#logo_utente,
-.user-panel .image img {
-    width: 48px;
-    height: 48px;
-    object-fit: cover;
-    border-radius: 50% !important;
-    border: 2px solid rgba(255,255,255,0.3);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-}
-
-/* Arrotonda leggermente il logo */
-.brand-link img {
-    border-radius: 12px;
-    transition: transform 0.2s ease;
-}
-
-.brand-link img:hover {
-    transform: scale(1.03);
-}
-
-/* Migliora il pannello utente */
-.user-panel {
-    background: rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 10px 12px;
-}
-
-/* Migliora i link del menu */
-.sidebar .nav-link {
-    border-radius: 8px;
-    margin: 2px 0;
-    transition: background 0.2s ease, padding-left 0.2s ease;
-}
-
-.sidebar .nav-link:hover {
-    background: rgba(255,255,255,0.15);
-    padding-left: 18px;
-}
-
-/* Migliora le icone */
-.sidebar .nav-icon {
-    margin-right: 10px;
-}
-
-/* Migliora la sezione brand */
-.brand-link {
-    padding: 18px 15px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-</style>

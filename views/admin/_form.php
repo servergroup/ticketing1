@@ -28,6 +28,15 @@ use yii\helpers\Url;
                 <?= $form->field($model, 'email')->textInput(['maxlength' => true])->label('Email aziendale') ?>
             </div>
             <div class="col-md-6">
+                <?= $form->field($model, 'telegram_username')->textInput(['maxlength' => true, 'placeholder' => '@utente'])->label('Telegram Username') ?>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <?= $form->field($model, 'telegram_chat_id')->textInput(['maxlength' => true, 'placeholder' => 'es. 123456789'])->label('Telegram Chat ID') ?>
+            </div>
+            <div class="col-md-6">
                 <?= $form->field($model, 'ruolo')->dropDownList([
                     'cliente' => 'Cliente',
                     'amministratore' => 'Amministratore',

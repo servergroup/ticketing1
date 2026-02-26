@@ -18,7 +18,7 @@ class UserTable extends User
     {
         return [
             [['id', 'tentativi', 'approvazione', 'blocco'], 'integer'],
-            [['nome', 'cognome', 'username', 'password', 'auth_key', 'access_token', 'email', 'ruolo', 'partita_iva', 'azienda', 'recapito_telefonico', 'immagine', 'token'], 'safe'],
+            [['nome', 'cognome', 'username', 'password', 'auth_key', 'access_token', 'email', 'ruolo', 'partita_iva', 'azienda', 'recapito_telefonico', 'immagine', 'token', 'telegram_username', 'telegram_chat_id'], 'safe'],
         ];
     }
 
@@ -77,7 +77,9 @@ class UserTable extends User
             ->andFilterWhere(['like', 'azienda', $this->azienda])
             ->andFilterWhere(['like', 'recapito_telefonico', $this->recapito_telefonico])
             ->andFilterWhere(['like', 'immagine', $this->immagine])
-            ->andFilterWhere(['like', 'token', $this->token]);
+            ->andFilterWhere(['like', 'token', $this->token])
+            ->andFilterWhere(['like', 'telegram_username', $this->telegram_username])
+            ->andFilterWhere(['like', 'telegram_chat_id', $this->telegram_chat_id]);
 
         return $dataProvider;
     }

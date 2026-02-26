@@ -1,33 +1,40 @@
 <?php
 
-use app\models\Ticket;
-use yii\helpers\Html;
-use yii\helpers\Url;
 use yii\grid\ActionColumn;
 use yii\grid\GridView;
+use yii\helpers\Html;
+use yii\helpers\StringHelper;
 
 /** @var yii\web\View $this */
 /** @var app\models\ticketfunction $searchModel */
 /** @var yii\data\ActiveDataProvider $dataProvider */
 
-$this->title = 'Tutti i ticket';
+$this->title = 'Ticket';
 $this->params['breadcrumbs'][] = $this->title;
 
-// Colori stato ticket
-$statiTicket = [
-    'aperto' => ['label' => 'Aperto', 'class' => 'badge bg-success'],
-    'in lavorazione' => ['label' => 'In Lavorazione', 'class' => 'badge bg-warning text-dark'],
-    'chiuso' => ['label' => 'Chiuso', 'class' => 'badge bg-secondary'],
-    'scaduto' => ['label' => 'Scaduto', 'class' => 'badge bg-danger'],
-];
-?>
-<div class="ticket-index">
+$ruolo = Yii::$app->user->identity->ruolo;
+$isAdmin = $ruolo === 'amministratore';
+$canCreate = in_array($ruolo, ['amministratore', 'cliente'], true);
 
-    <div class="d-flex justify-content-between align-items-center mb-3" id='container-titolo'>
-        <h1 class="h3" style="margin-left:650px;margin-bottom:60px;margin-top:50px;"><?= Html::encode($this->title) ?></h1>
-        <?php if (Yii::$app->user->identity->ruolo === 'amministratore' || Yii::$app->user->identity->ruolo === 'cliente'): ?>
-            <p><?= Html::a('<i class="bi bi-plus-lg"></i> Crea Ticket', ['new-ticket'], ['class' => 'btn btn-success btn-sm']) ?></p>
-        <?php endif; ?>
+$total = (int)$dataProvider->getTotalCount();
+?>
+
+<div class="page-shell">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Gestione ticket</h1>
+            <p class="page-subtitle">Totale risultati correnti: <strong><?= $total ?></strong></p>
+        </div>
+        <div class="page-actions">
+            <?= Html::a('Tutti', ['tickets/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?= Html::a('Aperti', ['tickets/open'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?= Html::a('In lavorazione', ['tickets/lavorazione'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?= Html::a('Chiusi', ['tickets/close'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?= Html::a('Scaduti', ['tickets/scadence'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?php if ($canCreate): ?>
+                <?= Html::a('Nuovo ticket', ['tickets/new-ticket'], ['class' => 'btn btn-sm btn-success']) ?>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?= GridView::widget([
@@ -35,136 +42,117 @@ $statiTicket = [
         'filterModel' => $searchModel,
         'emptyText' => 'Nessun ticket trovato.',
         'id' => 'tabella',
-        'tableOptions' => ['class' => 'table table-sm table-hover table-striped table-borderless text-center align-middle'],
         'summary' => '',
+        'tableOptions' => ['class' => 'table table-sm table-hover table-striped text-center align-middle'],
         'columns' => [
             [
                 'attribute' => 'codice_ticket',
-                'headerOptions' => ['class' => 'text-center', 'style' => 'width: 120px; min-width: 120px;'],
-                'contentOptions' => ['class' => 'text-center', 'style' => 'min-width: 120px;'],
+                'headerOptions' => ['style' => 'width: 120px;'],
             ],
             [
                 'attribute' => 'problema',
-                'headerOptions' => ['class' => 'text-center'],
-                'contentOptions' => ['class' => 'text-center'],
+                'value' => function ($model) {
+                    return StringHelper::truncateWords((string)$model->problema, 10);
+                },
             ],
             [
                 'attribute' => 'reparto',
                 'filter' => Html::activeDropDownList($searchModel, 'reparto', [
                     '' => 'Tutti',
-                    'sviluppo' => 'sviluppo',
-                    'ict' => 'ict',
-                    
+                    'sviluppo' => 'Sviluppo',
+                    'ict' => 'ICT',
                 ], ['class' => 'form-select form-select-sm']),
-                'headerOptions' => ['class' => 'text-center'],
-                'contentOptions' => ['class' => 'text-center'],
+            ],
+            [
+                'attribute' => 'priorita',
+                'format' => 'raw',
+                'value' => function ($model) {
+                    $map = [
+                        'alta' => 'danger',
+                        'media' => 'warning text-dark',
+                        'bassa' => 'success',
+                    ];
+                    $key = strtolower((string)$model->priorita);
+                    $class = $map[$key] ?? 'secondary';
+                    return Html::tag('span', ucfirst((string)$model->priorita), ['class' => 'badge bg-' . $class]);
+                },
+                'filter' => Html::activeDropDownList($searchModel, 'priorita', [
+                    '' => 'Tutte',
+                    'alta' => 'Alta',
+                    'media' => 'Media',
+                    'bassa' => 'Bassa',
+                ], ['class' => 'form-select form-select-sm']),
             ],
             [
                 'attribute' => 'stato',
                 'format' => 'raw',
-                'value' => function ($model) use ($statiTicket) {
-                    $stato = $statiTicket[$model->stato] ?? ['label' => ucfirst($model->stato), 'class' => 'badge bg-info'];
-                    return Html::tag('span', $stato['label'], ['class' => $stato['class']]);
+                'value' => function ($model) {
+                    $classMap = [
+                        'aperto' => 'success',
+                        'in lavorazione' => 'warning text-dark',
+                        'chiuso' => 'secondary',
+                        'scaduto' => 'danger',
+                        'risolto' => 'primary',
+                    ];
+                    $stato = strtolower((string)$model->stato);
+                    $class = $classMap[$stato] ?? 'info';
+                    return Html::tag('span', ucfirst((string)$model->stato), ['class' => 'badge bg-' . $class]);
                 },
                 'filter' => Html::activeDropDownList($searchModel, 'stato', [
                     '' => 'Tutti',
                     'aperto' => 'Aperto',
-                    'in lavorazione' => 'In Lavorazione',
+                    'in lavorazione' => 'In lavorazione',
                     'chiuso' => 'Chiuso',
                     'scaduto' => 'Scaduto',
                 ], ['class' => 'form-select form-select-sm']),
-                'headerOptions' => ['class' => 'text-center'],
-                'contentOptions' => ['class' => 'text-center'],
             ],
             [
-                'class' => ActionColumn::className(),
-                'template' => '{actions}',
-                'header' => '<i class="bi bi-gear"></i>',
-                'headerOptions' => ['class' => 'text-center', 'style' => 'width: 50px;'],
-                'contentOptions' => ['class' => 'text-center'],
+                'attribute' => 'scadenza',
+                'value' => function ($model) {
+                    return $model->scadenza ?: '-';
+                },
+            ],
+            [
+                'class' => ActionColumn::class,
+                'template' => '{view} {update} {message} {delete}',
+                'header' => 'Azioni',
                 'buttons' => [
-                    'actions' => function ($url, $model, $key) {
-                        $ruolo = Yii::$app->user->identity->ruolo;
-                        $isAdmin = $ruolo === 'amministratore';
-                        
-                        $items = [];
-                        
-                        // Visualizza (sempre visibile)
-                        $items[] = [
-                            'label' => '<i class="bi bi-eye me-2"></i> Visualizza',
-                            'url' => ['view', 'id' => $model->id],
-                        ];
-                        
-                        // Modifica (admin e cliente)
-                        if ($isAdmin || $ruolo === 'cliente') {
-                            $items[] = [
-                                'label' => '<i class="bi bi-pencil me-2"></i> Modifica',
-                                'url' => ['update', 'id' => $model->id],
-                            ];
+                    'view' => function ($url, $model) {
+                        return Html::a('<i class="fas fa-eye"></i>', ['tickets/view', 'id' => $model->id], [
+                            'class' => 'btn btn-sm btn-outline-primary',
+                            'title' => 'Visualizza',
+                        ]);
+                    },
+                    'update' => function ($url, $model) use ($isAdmin, $ruolo) {
+                        if (!$isAdmin && $ruolo !== 'cliente') {
+                            return '';
                         }
-                        
-                        // Assegna operatore (solo admin)
-                        if ($isAdmin) {
-                            $items[] = [
-                                'label' => '<i class="bi bi-person-check text-primary me-2"></i> Assegna',
-                                'url' => ['admin/delegate', 'id' => $model->id],
-                                'linkOptions' => ['data' => ['method' => 'post', 'confirm' => 'Vuoi assegnare questo ticket?']],
-                            ];
+                        return Html::a('<i class="fas fa-pen"></i>', ['tickets/update', 'id' => $model->id], [
+                            'class' => 'btn btn-sm btn-outline-secondary',
+                            'title' => 'Modifica',
+                        ]);
+                    },
+                    'message' => function ($url, $model) {
+                        return Html::a('<i class="fas fa-comments"></i>', ['messages/compose', 'ticketId' => $model->id], [
+                            'class' => 'btn btn-sm btn-outline-success',
+                            'title' => 'Invia messaggio sul ticket',
+                        ]);
+                    },
+                    'delete' => function ($url, $model) use ($isAdmin, $ruolo) {
+                        if (!$isAdmin && $ruolo !== 'cliente') {
+                            return '';
                         }
-                        
-                        // Elimina (admin e cliente)
-                        if ($isAdmin || $ruolo === 'cliente') {
-                            $items[] = [
-                                'label' => '<i class="bi bi-trash text-danger me-2"></i> Elimina',
-                                'url' => ['delete', 'id' => $model->id],
-                                'linkOptions' => ['data' => ['method' => 'post', 'confirm' => 'Sei sicuro di voler eliminare questo ticket?']],
-                            ];
-                        }
-                        
-                        if (empty($items)) {
-                            $items[] = ['label' => '<i class="bi bi-dash-lg me-2"></i> Nessuna azione', 'url' => '#', 'options' => ['class' => 'disabled']];
-                        }
-                        
-                        $menuHtml = Html::tag('ul', implode('', array_map(function($item) {
-                            $options = $item['options'] ?? [];
-                            $options['class'] = ($options['class'] ?? '') . ' dropdown-item';
-                            if (isset($item['linkOptions']['data'])) {
-                                $options['data-confirm'] = $item['linkOptions']['data']['confirm'] ?? null;
-                                $options['data-method'] = $item['linkOptions']['data']['method'] ?? null;
-                            }
-                            return Html::tag('li', Html::a($item['label'], $item['url'], $options));
-                        }, $items)), ['class' => 'dropdown-menu dropdown-menu-end shadow-sm']);
-                        
-                        return Html::tag('span',
-                            Html::button(Html::tag('span', '⋮', ['class' => 'dots-menu']), [
-                                'class' => 'btn btn-sm py-0 px-1',
-                                'data' => ['bs-toggle' => 'dropdown'],
-                                'aria' => ['expanded' => 'false'],
-                            ]) . $menuHtml,
-                            ['class' => 'dropdown']
-                        );
+                        return Html::a('<i class="fas fa-trash"></i>', ['tickets/delete', 'id' => $model->id], [
+                            'class' => 'btn btn-sm btn-outline-danger',
+                            'title' => 'Elimina',
+                            'data-confirm' => 'Confermi l\'eliminazione del ticket?',
+                            'data-method' => 'post',
+                        ]);
                     },
                 ],
+                'contentOptions' => ['style' => 'white-space: nowrap; min-width: 170px;'],
             ],
         ],
-    ]); ?>
-
+    ]) ?>
 </div>
 
-<style>
-    .table { border: none; }
-    .table td, .table th { border: none; vertical-align: middle; padding: 0.3rem 0.5rem; }
-    .table-sm td, .table-sm th { padding: 0.25rem 0.5rem; }
-    .dots-menu { font-size: 16px; color: #6c757d; background: none; border: none; cursor: pointer; padding: 2px 6px; transition: color 0.2s; }
-    .dots-menu:hover { color: #0d6efd; }
-    .dropdown .btn { border: none; box-shadow: none; }
-    .dropdown .btn:focus { box-shadow: none; }
-    .dropdown-menu { border: 1px solid #dee2e6; min-width: 160px; }
-    .dropdown-item { padding: 0.4rem 1rem; font-size: 0.875rem; }
-    .ticket-index .d-flex { gap: 0.5rem; }
-    .ticket-index h1 { margin-bottom: 0; }
-    .ticket-index p { margin-bottom: 1rem; }
-    .btn-group > .btn { margin-left: 0.25rem; }
-    .badge { font-size: 0.75rem; }
-    
-</style>

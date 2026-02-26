@@ -18,7 +18,7 @@ class assegnazioniTable extends Assegnazioni
     {
         return [
             [['id', 'id_operatore'], 'integer'],
-            [['codice_ticket', 'ambito'], 'safe'],
+            [['codice_ticket', 'reparto'], 'safe'],
         ];
     }
 
@@ -64,7 +64,7 @@ class assegnazioniTable extends Assegnazioni
         ]);
 
         $query->andFilterWhere(['like', 'codice_ticket', $this->codice_ticket])
-            ->andFilterWhere(['like', 'ambito', $this->ambito]);
+            ->andFilterWhere(['like', 'reparto', $this->reparto]);
 
         return $dataProvider;
     }

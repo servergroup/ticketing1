@@ -2,6 +2,7 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$smtpDsn = $params['smtpDsn'] ?? '';
 
 $config = [
     'id' => 'ticketing',
@@ -39,9 +40,9 @@ $config = [
 
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
-            'useFileTransport' => false,
+            'useFileTransport' => empty($smtpDsn),
             'transport' => [
-                'dsn' => 'smtp://macagninoriccardo85@gmail.com:atoyngbeugtmesrw@smtp.gmail.com:587?encryption=tls',
+                'dsn' => $smtpDsn ?: 'smtp://localhost:25',
             ],
         ],
 
@@ -58,12 +59,29 @@ $config = [
             'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
-                    'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
+                    'class' => 'app\components\JsonFileTarget',
+                    'levels' => ['error', 'warning', 'info'],
+                    'logFile' => '@runtime/logs/app.json',
+                    'logVars' => [],
                 ],
             ],
         ],
     ],
+
+    'on beforeRequest' => function () {
+        try {
+            Yii::$app->db->open();
+        } catch (\Throwable $e) {
+            Yii::error(
+                [
+                    'message' => 'Database non disponibile',
+                    'exception' => $e->getMessage(),
+                ],
+                'database'
+            );
+            throw new \yii\web\ServiceUnavailableHttpException('Database non disponibile. Riprova più tardi.');
+        }
+    },
 
     'params' => $params,
 ];

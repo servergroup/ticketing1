@@ -34,6 +34,8 @@ $this->params['breadcrumbs'][] = $this->title;
             'cognome',
             'username',
             'email:email',
+            'telegram_username',
+            'telegram_chat_id',
             'ruolo',
           
         ],

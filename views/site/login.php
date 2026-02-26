@@ -15,7 +15,7 @@ LogAsset::register($this);
         <div class="login-card-body">
 
             <p class="login-box-msg">
-               <img src="<?= Yii::getAlias('@web/img/taglio_dataseed.svg') ?>">
+               <img src="<?= Yii::getAlias('@web/img/taglio_dataseed.png') ?>">
             </p>
 
             <h1 class="text-center mb-4">Accedi</h1>

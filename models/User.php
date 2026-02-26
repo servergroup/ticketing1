@@ -23,7 +23,7 @@ class User extends ActiveRecord implements IdentityInterface
             [['approvazione', 'blocco','is_totp_enabled'], 'boolean'],
             ['tentativi', 'integer'],
 
-            [['partita_iva', 'recapito_telefonico', 'azienda','token','totp_secret'], 'string'],
+            [['partita_iva', 'recapito_telefonico', 'azienda', 'token', 'totp_secret', 'telegram_username', 'telegram_chat_id'], 'string'],
 
             [
                 'immagine',

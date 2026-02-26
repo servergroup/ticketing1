@@ -4,13 +4,17 @@ use yii\widgets\ActiveForm;
 /** @var app\models\Turni $turni */
 
 $this->title = 'Registrazione Aziendale';
+$logoSvgPath = Yii::getAlias('@webroot/img/taglio_dataseed.svg');
+$logoSrc = file_exists($logoSvgPath)
+    ? Yii::getAlias('@web/img/taglio_dataseed.svg')
+    : Yii::getAlias('@web/img/taglio_dataseed.png');
 ?>
 
 <div class="admin-registerAdmin">
 
     <!-- LOGO AZIENDALE -->
     <div class="logo-container">
-        <img src="<?= Yii::getAlias('@web/img/taglio_dataseed.svg') ?>" alt="Logo Aziendale" class="company-logo">
+        <img src="<?= $logoSrc ?>" alt="Logo Aziendale" class="company-logo">
     </div>
 
     <h1>Registrazione Aziendale</h1>
@@ -38,6 +42,8 @@ $this->title = 'Registrazione Aziendale';
     <?= $form->field($user, 'password')->passwordInput(['maxlength' => true]) ?>
     <?= $form->field($user, 'email')->input('email') ?>
     <?= $form->field($user, 'recapito_telefonico')->textInput() ?>
+    <?= $form->field($user, 'telegram_username')->textInput(['maxlength' => true, 'placeholder' => '@utente']) ?>
+    <?= $form->field($user, 'telegram_chat_id')->textInput(['maxlength' => true, 'placeholder' => 'es. 123456789']) ?>
 
     <?= $form->field($user, 'ruolo')->dropDownList([
         'cliente' => 'Cliente',
@@ -63,7 +69,7 @@ $this->title = 'Registrazione Aziendale';
         ?>
         <?= Html::submitButton('Registrati', ['class' => 'btn btn-primary']) ?>
         <?php
-        }else if( Yii::$app->user->identity->ruolo='amministratore'){
+        }else if( Yii::$app->user->identity->ruolo=='amministratore'){
             ?>
            <?= Html::submitButton('Crea', ['class' => 'btn btn-primary']) ?>
        <?php  } ?>

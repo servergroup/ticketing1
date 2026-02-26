@@ -22,6 +22,7 @@ use app\models\User;
 use app\models\Ticket;
 use app\models\Turni;
 use app\models\Mail;
+use app\models\TicketMessage;
 use app\models\ticketFunctions;
 use Exception;
 
@@ -60,23 +61,82 @@ class SiteController extends Controller
     }
     public function actionIndex()
     {
-        $user = User::findOne(['username' => Yii::$app->user->identity->username]);
-        $ticket = Ticket::find()->where(['id_cliente' => $user->id])->all();
-        $assegnazioni = Assegnazioni::find()->all();
-        $countTicket = Ticket::find()->where(['id_cliente' => $user->id])->count();
+        $user = User::findOne(['id' => Yii::$app->user->id]);
+        if ($user === null) {
+            return $this->redirect(['login']);
+        }
+
         $function = new ticketFunctions();
         $function->ticketScaduto();
-        $ultimoTicket = Ticket::find()->where(['id_cliente' => $user->id])->orderBy(['data_invio' => SORT_DESC])->one();
+
         if (!$user->approvazione) {
             Yii::$app->session->setFlash('info', 'Attendere l\'approvazione da parte di un amministratore');
             return $this->redirect(['attesa']);
         }
+
+        $ticketQuery = Ticket::find()->where(['id_cliente' => $user->id]);
+        $ticket = $ticketQuery->all();
+        $countTicket = (int)(clone $ticketQuery)->count();
+        $ultimoTicket = (clone $ticketQuery)->orderBy(['data_invio' => SORT_DESC])->one();
+
+        $assegnazioni = Assegnazioni::find()->where(['id_operatore' => $user->id])->all();
+        $unreadMessages = 0;
+        try {
+            if (Yii::$app->db->schema->getTableSchema(TicketMessage::tableName(), true) !== null) {
+                $unreadMessages = (int)TicketMessage::find()
+                    ->where(['recipient_id' => $user->id, 'is_read' => 0])
+                    ->count();
+            }
+        } catch (\Throwable $e) {
+            $unreadMessages = 0;
+        }
+
+        $dashboardStats = [
+            'total' => 0,
+            'open' => 0,
+            'in_progress' => 0,
+            'closed' => 0,
+            'expired' => 0,
+        ];
+
+        if ($user->ruolo === 'amministratore') {
+            $allTickets = Ticket::find();
+            $dashboardStats['total'] = (int)(clone $allTickets)->count();
+            $dashboardStats['open'] = (int)(clone $allTickets)->where(['stato' => 'aperto'])->count();
+            $dashboardStats['in_progress'] = (int)(clone $allTickets)->where(['stato' => 'in lavorazione'])->count();
+            $dashboardStats['closed'] = (int)(clone $allTickets)->where(['stato' => 'chiuso'])->count();
+            $dashboardStats['expired'] = (int)(clone $allTickets)->where(['stato' => 'scaduto'])->count();
+        } elseif ($user->ruolo === 'cliente') {
+            $myTickets = Ticket::find()->where(['id_cliente' => $user->id]);
+            $dashboardStats['total'] = (int)(clone $myTickets)->count();
+            $dashboardStats['open'] = (int)(clone $myTickets)->andWhere(['stato' => 'aperto'])->count();
+            $dashboardStats['in_progress'] = (int)(clone $myTickets)->andWhere(['stato' => 'in lavorazione'])->count();
+            $dashboardStats['closed'] = (int)(clone $myTickets)->andWhere(['stato' => 'chiuso'])->count();
+            $dashboardStats['expired'] = (int)(clone $myTickets)->andWhere(['stato' => 'scaduto'])->count();
+        } else {
+            $codiciAssegnati = Assegnazioni::find()
+                ->select('codice_ticket')
+                ->where(['id_operatore' => $user->id])
+                ->column();
+
+            if (!empty($codiciAssegnati)) {
+                $assignedTickets = Ticket::find()->where(['codice_ticket' => $codiciAssegnati]);
+                $dashboardStats['total'] = (int)(clone $assignedTickets)->count();
+                $dashboardStats['open'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'aperto'])->count();
+                $dashboardStats['in_progress'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'in lavorazione'])->count();
+                $dashboardStats['closed'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'chiuso'])->count();
+                $dashboardStats['expired'] = (int)(clone $assignedTickets)->andWhere(['stato' => 'scaduto'])->count();
+            }
+        }
+
         return $this->render('index', [
             'user' => $user,
             'ticket' => $ticket,
             'countTicket' => $countTicket,
             'ultimoTicket' => $ultimoTicket,
             'assegnazioni' => $assegnazioni,
+            'dashboardStats' => $dashboardStats,
+            'unreadMessages' => $unreadMessages,
         ]);
     }
     public function actionLogin()
@@ -342,7 +402,18 @@ class SiteController extends Controller
             try {
                 if ($function->verifyUser($user->username, $user->email)) {
                     Yii::$app->session->setFlash('error', 'Utente già registrato');
-                } else if ($function->registerAdmin($user->nome, $user->cognome, $user->password, $user->email, $user->ruolo, $user->partita_iva, $user->azienda, $user->recapito_telefonico)) {
+                } else if ($function->registerAdmin(
+                    $user->nome,
+                    $user->cognome,
+                    $user->password,
+                    $user->email,
+                    $user->ruolo,
+                    $user->partita_iva,
+                    $user->azienda,
+                    $user->recapito_telefonico,
+                    $user->telegram_username,
+                    $user->telegram_chat_id
+                )) {
 
                     Yii::$app->session->setFlash('success', 'Registrazione avvenuta correttamente');
                     return $this->redirect(['login']);
@@ -369,7 +440,7 @@ class SiteController extends Controller
         $count = User::find()->where(['username' => Yii::$app->user->identity->username])->count();
         if ($count == 0) {
             Yii::$app->session->setFlash('error', 'Non hai ancora creato nessun ticket');
-            return $this->redirect(['ticket/new-ticket']);
+            return $this->redirect(['tickets/new-ticket']);
         }
         return $this->render('myAccount', ['account' => $account]);
     }
@@ -540,6 +611,7 @@ class SiteController extends Controller
             {
                   Yii::$app->session->setFlash('success', 'Risposta inviata correttamente');
                   // Compone ed invia email
+        $logoUrl = Yii::$app->request->hostInfo . Yii::getAlias('@web/img/taglio_dataseed.png');
         Yii::$app->mailer->compose()
             ->setTo(Yii::$app->params['senderEmail'])
             ->setFrom(Yii::$app->user->identity->email)
@@ -548,7 +620,7 @@ class SiteController extends Controller
             ->setHtmlBody('<html>'.'
             <body>
             <p>'.$model->messagio.'</p>
-            <img src='.Yii::getAlias('@web/img/taglio_dataseed.svg').'
+            <img src="'.$logoUrl.'" alt="Dataseed" style="max-width:180px;height:auto;">
             </body>
             '.'</html>')
             ->send();
