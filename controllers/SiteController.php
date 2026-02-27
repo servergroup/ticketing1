@@ -239,7 +239,7 @@ class SiteController extends Controller
     }
     public function actionVerify2fa()
     {
-        $userId = Yii::$app->session->get('pending_user_id');
+        $userId = Yii::$app->user->identity->id;
         if (!$userId) {
             return $this->redirect(['login']);
         }
@@ -252,22 +252,36 @@ class SiteController extends Controller
 
           if ($tfa->verifyCode($user->totp_secret, $model->code)) {
 
+          if(!$user->is_totp_enabled)
+            {
     // Attiva la 2FA definitivamente
     $user->is_totp_enabled = 1;
-    $user->save(false);
+    $user->save();
 
     // Rimuove la sessione temporanea
     Yii::$app->session->remove('pending_user_id');
 
     // Login dell’utente
     Yii::$app->user->login($user);
-
+    
     return $this->goHome();
-}
+    }else{
+         $user->is_totp_enabled = 0;
+
+    $user->save();
+
+    // Rimuove la sessione temporanea
+    Yii::$app->session->remove('pending_user_id');
+
+    
+    return $this->redirect(['logout']);
+    }
 
             $model->addError('code', 'Codice non valido');
         }
+        }
         return $this->render('verify-2fa', ['model' => $model]);
+    
     }
     public function actionLogout()
     {
@@ -277,19 +291,22 @@ class SiteController extends Controller
         return $this->goHome();
     }
 
+    /*
     public function actionDisable2fa()
     {
         $function=new userService();
 
         if($function->disattiva2fa()){
+            
             Yii::$app->session->setFlash('success','Autenticazione a due fattori disattivata correttamente');
+
             return $this->redirect(['index']);
         }else{
              Yii::$app->session->setFlash('error','Autenticazione a due fattori non disattivata correttamente');
             return $this->redirect(['index']);
         }
     }
-
+*/
 
    public function actionEnable2fa()
 {

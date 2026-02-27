@@ -568,19 +568,21 @@ public function avanzaRiapertura($codice_ticket, $id_operatore)
     return $tutteInviate;
 }
 
+/*
 public function disattiva2fa()
 {
     $user=User::findOne(Yii::$app->user->identity->id);
 
     if($user->is_totp_enabled)
         {
+
             $user->totp_secret=null;
             $user->is_totp_enabled=0;
 
-            $user->save();
+           return  $user->save();
         }
 }
-
+*/
 public function resolveMessage($codice_ticket,$messagio)
 {
     $mail=new Mail();

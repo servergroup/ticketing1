@@ -28,10 +28,7 @@ $imageUrl = $account->immagine
                 <span>Email</span>
                 <strong><?= Html::encode($account->email ?: '-') ?></strong>
             </div>
-            <div class="info-row">
-                <span>Telegram User</span>
-                <strong><?= Html::encode($account->recapito_telefonico ?: '-') ?></strong>
-            </div>
+           
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
                 <div class="info-row">
                     <span>Partita IVA</span>
@@ -67,7 +64,7 @@ $imageUrl = $account->immagine
             <?php if (!$account->is_totp_enabled): ?>
                 <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
             <?php else: ?>
-                <?= Html::a('Disattiva 2FA', ['site/disable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
+                <?= Html::a('Disattiva 2FA', ['site/verify-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
             <?php endif; ?>
 
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
