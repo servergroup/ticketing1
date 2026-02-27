@@ -76,6 +76,7 @@ class SiteController extends Controller
             return $this->redirect(['attesa']);
         }
 
+        $previewLimit = 4;
         $ticketQuery = Ticket::find()->where(['id_cliente' => $user->id]);
         $ticket = $ticketQuery->all();
         $countTicket = (int)(clone $ticketQuery)->count();
@@ -85,18 +86,26 @@ class SiteController extends Controller
 
         $isOperator = !in_array($user->ruolo, ['cliente', 'amministratore'], true);
         $customerRecentTickets = [];
+        $customerRecentMessages = [];
         $inlineTicketModel = null;
+        $inlineMessageModel = null;
+        $messageTicketOptions = [];
+        $messageRecipientOptions = [];
+        $messagesModuleEnabled = false;
         $operatorAssignedTicketCodes = [];
         $operatorAssignedTickets = [];
         $operatorDepartmentTickets = [];
         $operatorRecentMessages = [];
         $operatorDepartment = null;
+        $adminRecentTickets = [];
+        $adminPendingUsers = [];
+        $adminRecentMessages = [];
 
         if ($user->ruolo === 'cliente') {
             $customerRecentTickets = Ticket::find()
                 ->where(['id_cliente' => $user->id])
                 ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
-                ->limit(10)
+                ->limit($previewLimit)
                 ->all();
 
             $inlineTicketModel = new ticketfunction();
@@ -114,7 +123,7 @@ class SiteController extends Controller
                 $operatorAssignedTickets = Ticket::find()
                     ->where(['codice_ticket' => $operatorAssignedTicketCodes])
                     ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
-                    ->limit(10)
+                    ->limit($previewLimit)
                     ->all();
             }
 
@@ -124,30 +133,73 @@ class SiteController extends Controller
                 $operatorDepartmentTickets = Ticket::find()
                     ->where(['in', new Expression('LOWER(reparto)'), $departmentAliases])
                     ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
-                    ->limit(10)
+                    ->limit($previewLimit)
                     ->all();
             }
         }
 
+        if ($user->ruolo === 'amministratore') {
+            $adminRecentTickets = Ticket::find()
+                ->with('cliente')
+                ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+                ->limit($previewLimit)
+                ->all();
+
+            $adminPendingUsers = User::find()
+                ->where(['approvazione' => 0])
+                ->orderBy(['id' => SORT_DESC])
+                ->limit($previewLimit)
+                ->all();
+        }
+
         $unreadMessages = 0;
         try {
-            if (Yii::$app->db->schema->getTableSchema(TicketMessage::tableName(), true) !== null) {
+            $messagesModuleEnabled = Yii::$app->db->schema->getTableSchema(TicketMessage::tableName(), true) !== null;
+            if ($messagesModuleEnabled) {
                 $unreadMessages = (int)TicketMessage::find()
                     ->where(['recipient_id' => $user->id, 'is_read' => 0])
                     ->count();
 
+                $inlineMessageModel = new TicketMessage();
+                $messageTicketOptions = $this->buildDashboardTicketOptions($user);
+                $messageRecipientOptions = $this->buildDashboardRecipientOptions($user);
+
+                if ($user->ruolo === 'cliente') {
+                    $customerRecentMessages = TicketMessage::find()
+                        ->with(['sender', 'ticket'])
+                        ->where(['recipient_id' => $user->id])
+                        ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
+                        ->limit($previewLimit)
+                        ->all();
+                }
+
+                if ($user->ruolo === 'amministratore') {
+                    $adminRecentMessages = TicketMessage::find()
+                        ->with(['sender', 'ticket'])
+                        ->where(['recipient_id' => $user->id])
+                        ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
+                        ->limit($previewLimit)
+                        ->all();
+                }
+
                 if ($isOperator) {
                     $operatorRecentMessages = TicketMessage::find()
                         ->with(['sender', 'ticket'])
-                        ->where(['recipient_id' => $user->id, 'is_read' => 0])
+                        ->where(['recipient_id' => $user->id])
                         ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
-                        ->limit(10)
+                        ->limit($previewLimit)
                         ->all();
                 }
             }
         } catch (\Throwable $e) {
+            $messagesModuleEnabled = false;
             $unreadMessages = 0;
+            $inlineMessageModel = null;
+            $messageTicketOptions = [];
+            $messageRecipientOptions = [];
+            $customerRecentMessages = [];
             $operatorRecentMessages = [];
+            $adminRecentMessages = [];
         }
 
         $dashboardStats = [
@@ -196,7 +248,15 @@ class SiteController extends Controller
             'operatorRecentMessages' => $operatorRecentMessages,
             'operatorDepartment' => $operatorDepartment,
             'customerRecentTickets' => $customerRecentTickets,
+            'customerRecentMessages' => $customerRecentMessages,
             'inlineTicketModel' => $inlineTicketModel,
+            'inlineMessageModel' => $inlineMessageModel,
+            'messageTicketOptions' => $messageTicketOptions,
+            'messageRecipientOptions' => $messageRecipientOptions,
+            'messagesModuleEnabled' => $messagesModuleEnabled,
+            'adminRecentTickets' => $adminRecentTickets,
+            'adminPendingUsers' => $adminPendingUsers,
+            'adminRecentMessages' => $adminRecentMessages,
         ]);
     }
     public function actionLogin()
@@ -723,5 +783,63 @@ class SiteController extends Controller
         }
 
             return $this->render('Message',['model'=>$model]);
+    }
+
+    private function buildDashboardTicketOptions(User $identity): array
+    {
+        $query = Ticket::find()
+            ->orderBy(['id' => SORT_DESC]);
+
+        if ($identity->ruolo === 'cliente') {
+            $query->andWhere(['id_cliente' => $identity->id]);
+        } elseif ($identity->ruolo !== 'amministratore') {
+            $department = ticketFunctions::departmentFromRole($identity->ruolo);
+            $aliases = ticketFunctions::departmentAliases($department);
+
+            if (!empty($aliases)) {
+                $query->andWhere(['in', new Expression('LOWER(reparto)'), $aliases]);
+            } else {
+                $assignedCodes = Assegnazioni::find()
+                    ->select('codice_ticket')
+                    ->where(['id_operatore' => $identity->id])
+                    ->column();
+
+                if (empty($assignedCodes)) {
+                    return [];
+                }
+
+                $query->andWhere(['codice_ticket' => $assignedCodes]);
+            }
+        }
+
+        $tickets = $query->limit(100)->all();
+        $options = [];
+        foreach ($tickets as $ticket) {
+            $options[(int)$ticket->id] = (string)$ticket->codice_ticket . ' - ' . (string)$ticket->stato . ' - ' . (string)$ticket->reparto;
+        }
+
+        return $options;
+    }
+
+    private function buildDashboardRecipientOptions(User $identity): array
+    {
+        $query = User::find()
+            ->where(['<>', 'id', $identity->id])
+            ->andWhere(['approvazione' => 1])
+            ->orderBy(['ruolo' => SORT_ASC, 'nome' => SORT_ASC, 'cognome' => SORT_ASC]);
+
+        if ($identity->ruolo === 'cliente') {
+            $query->andWhere(['ruolo' => ['amministratore', 'developer', 'ict', 'itc', 'sistemista']]);
+        }
+
+        $users = $query->limit(100)->all();
+        $options = [];
+
+        foreach ($users as $user) {
+            $fullName = trim((string)$user->nome . ' ' . (string)$user->cognome);
+            $options[(int)$user->id] = $fullName . ' - ' . (string)$user->ruolo;
+        }
+
+        return $options;
     }
 }
