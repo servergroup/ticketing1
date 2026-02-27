@@ -99,12 +99,13 @@ if (!empty($account->immagine)) {
                 <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
               <br>
                 <?php else: ?>
+                     <br>
                 <?= Html::a('Disattiva 2FA', ['site/verify-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
             <br>
                 <?php endif; ?>
 
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
-              <br>
+             
                 <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'profile-btn profile-btn-ghost']) ?>
             <?php endif; ?>
 
