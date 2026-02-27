@@ -2,7 +2,7 @@
 
 namespace app\controllers;
 
-use app\models\ticketFunction;
+use app\models\ticketFunctions;
 use app\models\User;
 use app\models\userService;
 use app\models\Ticket;
@@ -194,7 +194,7 @@ class AdminController extends Controller
             return $this->redirect(['tickets/index']);
         }
         
-        $function=new ticketFunction();
+        $function=new ticketFunctions();
 
         if($function->assegnaTicket($ticket->codice_ticket,$ticket->reparto))
             {
@@ -366,5 +366,6 @@ public function actionVerifyRuolo()
     ]);
 
 }
+
 
 }

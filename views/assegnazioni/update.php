@@ -5,17 +5,22 @@ use yii\helpers\Html;
 /** @var yii\web\View $this */
 /** @var app\models\Assegnazioni $model */
 
-$this->title = 'Update Assegnazioni: ' . $model->id;
-$this->params['breadcrumbs'][] = ['label' => 'Assegnazionis', 'url' => ['index']];
-$this->params['breadcrumbs'][] = ['label' => $model->id, 'url' => ['view', 'id' => $model->id]];
-$this->params['breadcrumbs'][] = 'Update';
+$this->title = 'Aggiorna assegnazione #' . (int)$model->id;
+$this->params['breadcrumbs'][] = ['label' => 'Assegnazioni ticket', 'url' => ['index']];
+$this->params['breadcrumbs'][] = ['label' => 'Dettaglio #' . (int)$model->id, 'url' => ['view', 'id' => $model->id]];
+$this->params['breadcrumbs'][] = $this->title;
 ?>
-<div class="assegnazioni-update">
 
-    <h1><?= Html::encode($this->title) ?></h1>
+<div class="page-shell page-shell--narrow">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title"><?= Html::encode($this->title) ?></h1>
+            <p class="page-subtitle">Modifica operatore e reparto collegati al ticket.</p>
+        </div>
+    </div>
 
     <?= $this->render('_form', [
         'model' => $model,
     ]) ?>
-
 </div>
+

@@ -11,11 +11,11 @@ $this->params['breadcrumbs'][] = ['label' => 'Ticket', 'url' => ['index']];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 
-<div class="page-shell ticket-form-page">
+<div class="page-shell page-shell--narrow ticket-form-page">
     <div class="page-head">
         <div>
             <h1 class="page-title"><?= Html::encode($this->title) ?></h1>
-            <p class="page-subtitle">Apri una richiesta di assistenza e inoltra il ticket al reparto corretto.</p>
+            <p class="page-subtitle">Apri una richiesta di assistenza e indirizzala al reparto corretto.</p>
         </div>
         <div class="page-actions">
             <?= Html::a('I miei ticket', ['tickets/my-ticket'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
@@ -42,7 +42,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     'bassa' => 'Bassa',
                     'media' => 'Media',
                     'alta' => 'Alta',
-                ], ['prompt' => 'Seleziona priorità']) ?>
+                ], ['prompt' => 'Seleziona priorita']) ?>
             </div>
             <div class="col-md-4">
                 <?= $form->field($ticket, 'scadenza')->input('date') ?>

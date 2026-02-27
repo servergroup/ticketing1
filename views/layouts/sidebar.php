@@ -66,7 +66,7 @@ if ($ruolo === 'amministratore') {
         ],
         $communicationMenu,
     ];
-} elseif (in_array($ruolo, ['ict', 'itc', 'developer'], true)) {
+} elseif (in_array($ruolo, ['ict', 'itc', 'developer', 'sistemista'], true)) {
     $menuItems = [
         ['label' => 'Dashboard', 'icon' => 'fas fa-home', 'url' => ['site/index']],
         [

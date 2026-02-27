@@ -41,7 +41,7 @@ class assegnazioniTable extends Assegnazioni
      */
     public function search($params, $formName = null)
     {
-        $query = Assegnazioni::find();
+        $query = Assegnazioni::find()->with(['operatore', 'codiceTicket'])->orderBy(['id' => SORT_DESC]);
 
         // add conditions that should always apply here
 
@@ -63,8 +63,20 @@ class assegnazioniTable extends Assegnazioni
             'id_operatore' => $this->id_operatore,
         ]);
 
-        $query->andFilterWhere(['like', 'codice_ticket', $this->codice_ticket])
-            ->andFilterWhere(['like', 'reparto', $this->reparto]);
+        $query->andFilterWhere(['like', 'codice_ticket', $this->codice_ticket]);
+
+        if (!empty($this->reparto)) {
+            $departmentFilters = ['or'];
+            if ($this->hasAttribute('reparto')) {
+                $departmentFilters[] = ['like', 'reparto', $this->reparto];
+            }
+            if ($this->hasAttribute('ambito')) {
+                $departmentFilters[] = ['like', 'ambito', $this->reparto];
+            }
+            if (count($departmentFilters) > 1) {
+                $query->andWhere($departmentFilters);
+            }
+        }
 
         return $dataProvider;
     }

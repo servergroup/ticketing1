@@ -8,33 +8,51 @@ use yii\widgets\ActiveForm;
 /** @var yii\widgets\ActiveForm $form */
 ?>
 
-<div class="ticket-form">
-
+<div class="form-card">
     <?php $form = ActiveForm::begin(); ?>
 
-    <?= $form->field($model, 'problema')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'problema')->textarea([
+        'rows' => 6,
+        'placeholder' => 'Descrivi il problema in modo chiaro e completo',
+    ]) ?>
 
-    <?= $form->field($model, 'reparto')->textInput(['maxlength' => true]) ?>
+    <div class="row">
+        <div class="col-md-4">
+            <?= $form->field($model, 'reparto')->dropDownList([
+                'ict' => 'Sistemistica (ICT)',
+                'sviluppo' => 'Sviluppo',
+            ], ['prompt' => 'Seleziona reparto']) ?>
+        </div>
+        <div class="col-md-4">
+            <?= $form->field($model, 'priorita')->dropDownList([
+                'alta' => 'Alta',
+                'media' => 'Media',
+                'bassa' => 'Bassa',
+            ], ['prompt' => 'Seleziona priorita']) ?>
+        </div>
+        <div class="col-md-4">
+            <?= $form->field($model, 'stato')->dropDownList([
+                'aperto' => 'Aperto',
+                'in lavorazione' => 'In lavorazione',
+                'chiuso' => 'Chiuso',
+                'scaduto' => 'Scaduto',
+            ], ['prompt' => 'Seleziona stato']) ?>
+        </div>
+    </div>
 
-    <?= $form->field($model, 'codice_ticket')->textInput(['maxlength' => true]) ?>
+    <?php if (Yii::$app->user->identity->ruolo === 'amministratore'): ?>
+        <div class="row">
+            <div class="col-md-4">
+                <?= $form->field($model, 'scadenza')->input('date') ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
-    <?= $form->field($model, 'stato')->textInput(['maxlength' => true]) ?>
-
-    <?php if(Yii::$app->user->identity->ruolo=='amministratore'):?>
-         <?= $form->field($model, 'scadenza')->textInput() ?>
-    
-        <?php endif;?>
-    
-       
-
-
-
-    <?= $form->field($model, 'priorita')->textInput(['maxlength' => true]) ?>
-
-    <div class="form-group">
-        <?= Html::submitButton('Save', ['class' => 'btn btn-success']) ?>
+    <div class="d-flex gap-2">
+        <?= Html::submitButton('Salva ticket', ['class' => 'btn btn-primary']) ?>
+        <?= Html::a('Annulla', ['tickets/index'], ['class' => 'btn btn-outline-secondary']) ?>
     </div>
 
     <?php ActiveForm::end(); ?>
-
 </div>
+

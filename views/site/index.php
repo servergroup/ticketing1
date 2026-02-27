@@ -2,6 +2,7 @@
 
 use yii\helpers\Html;
 use yii\helpers\Url;
+use yii\widgets\ActiveForm;
 
 /** @var yii\web\View $this */
 /** @var app\models\User $user */
@@ -13,11 +14,14 @@ use yii\helpers\Url;
 /** @var app\models\Ticket[] $operatorDepartmentTickets */
 /** @var app\models\TicketMessage[] $operatorRecentMessages */
 /** @var string|null $operatorDepartment */
+/** @var app\models\Ticket[] $customerRecentTickets */
+/** @var app\models\ticketfunction|null $inlineTicketModel */
 
 $this->title = 'Dashboard';
 $ruolo = $user->ruolo;
-$actions=[];
+$actions = [];
 $nome = Yii::$app->user->identity->nome;
+$isClientDashboard = ($ruolo === 'cliente');
 $isOperatorDashboard = !in_array($ruolo, ['cliente', 'amministratore'], true);
 $assignedCodeMap = [];
 foreach ($operatorAssignedTickets as $assignedTicket) {
@@ -29,8 +33,21 @@ foreach ($operatorAssignedTickets as $assignedTicket) {
 
 if ($ruolo === 'cliente') {
     $actions = [
-        ['label' => 'Apri ticket', 'url' => ['tickets/new-ticket'], 'icon' => 'fas fa-plus-circle', 'variant' => 'primary'],
-        ['label' => 'I miei ticket', 'url' => ['tickets/my-ticket'], 'icon' => 'fas fa-ticket-alt', 'variant' => 'neutral'],
+        [
+            'label' => 'Nuovo ticket',
+            'url' => ['tickets/new-ticket'],
+            'icon' => 'fas fa-plus-circle',
+            'variant' => 'primary',
+            'toggle' => 'create-ticket',
+        ],
+        [
+            'label' => 'I miei ticket',
+            'url' => ['tickets/my-ticket'],
+            'icon' => 'fas fa-ticket-alt',
+            'variant' => 'neutral',
+            'toggle' => 'my-tickets',
+            'detailCount' => count($customerRecentTickets),
+        ],
         ['label' => 'Scrivi a supporto', 'url' => ['messages/compose'], 'icon' => 'fas fa-comments', 'variant' => 'neutral'],
     ];
 } elseif ($ruolo === 'amministratore') {
@@ -66,6 +83,14 @@ if ($ruolo === 'cliente') {
             'detailCount' => (int)$unreadMessages,
         ],
     ];
+}
+
+$hasDashboardToggles = false;
+foreach ($actions as $action) {
+    if (isset($action['toggle'])) {
+        $hasDashboardToggles = true;
+        break;
+    }
 }
 ?>
 
@@ -111,7 +136,7 @@ if ($ruolo === 'cliente') {
 
     <section class="quick-actions">
         <?php foreach ($actions as $action): ?>
-            <?php if ($isOperatorDashboard && isset($action['toggle'])): ?>
+            <?php if (isset($action['toggle'])): ?>
                 <div class="quick-action-item">
                     <button
                         type="button"
@@ -121,7 +146,9 @@ if ($ruolo === 'cliente') {
                     >
                         <i class="<?= Html::encode($action['icon']) ?>"></i>
                         <span><?= Html::encode($action['label']) ?></span>
-                        <span class="quick-action-count"><?= (int)($action['detailCount'] ?? 0) ?></span>
+                        <?php if (isset($action['detailCount'])): ?>
+                            <span class="quick-action-count"><?= (int)$action['detailCount'] ?></span>
+                        <?php endif; ?>
                     </button>
                     <?= Html::a('Apri pagina completa', $action['url'], ['class' => 'quick-action-direct']) ?>
                 </div>
@@ -133,6 +160,95 @@ if ($ruolo === 'cliente') {
             <?php endif; ?>
         <?php endforeach; ?>
     </section>
+
+    <?php if ($isClientDashboard): ?>
+        <section class="dashboard-toggle-panels">
+            <article id="panel-create-ticket" class="dashboard-panel" hidden>
+                <div class="dashboard-panel-head">
+                    <h2>Nuovo ticket rapido</h2>
+                    <div class="dashboard-panel-actions">
+                        <?= Html::a('Pagina completa', ['tickets/new-ticket'], ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                        <?= Html::a('I miei ticket', ['tickets/my-ticket'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+                    </div>
+                </div>
+                <?php if ($inlineTicketModel === null): ?>
+                    <p class="dashboard-empty">Form non disponibile al momento.</p>
+                <?php else: ?>
+                    <?php $form = ActiveForm::begin([
+                        'action' => ['tickets/new-ticket'],
+                        'method' => 'post',
+                    ]); ?>
+                    <?= $form->field($inlineTicketModel, 'problema')->textarea([
+                        'rows' => 4,
+                        'placeholder' => 'Descrivi in dettaglio il problema riscontrato',
+                    ]) ?>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <?= $form->field($inlineTicketModel, 'reparto')->dropDownList([
+                                'ict' => 'Sistemistica (ICT)',
+                                'sviluppo' => 'Sviluppo',
+                            ], ['prompt' => 'Seleziona reparto']) ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?= $form->field($inlineTicketModel, 'priorita')->dropDownList([
+                                'bassa' => 'Bassa',
+                                'media' => 'Media',
+                                'alta' => 'Alta',
+                            ], ['prompt' => 'Seleziona priorita']) ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?= $form->field($inlineTicketModel, 'scadenza')->input('date') ?>
+                        </div>
+                    </div>
+                    <?= $form->field($inlineTicketModel, 'id_cliente')->hiddenInput()->label(false) ?>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <?= Html::submitButton('Invia ticket', ['class' => 'btn btn-primary']) ?>
+                        <?= Html::a('Vai al form completo', ['tickets/new-ticket'], ['class' => 'btn btn-outline-secondary']) ?>
+                    </div>
+                    <?php ActiveForm::end(); ?>
+                <?php endif; ?>
+            </article>
+
+            <article id="panel-my-tickets" class="dashboard-panel" hidden>
+                <div class="dashboard-panel-head">
+                    <h2>I miei ticket recenti</h2>
+                    <?= Html::a('Pagina completa', ['tickets/my-ticket'], ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                </div>
+                <?php if (empty($customerRecentTickets)): ?>
+                    <p class="dashboard-empty">Non hai ancora ticket aperti.</p>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Codice</th>
+                                    <th>Stato</th>
+                                    <th>Priorita</th>
+                                    <th>Scadenza</th>
+                                    <th>Data invio</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($customerRecentTickets as $ticketModel): ?>
+                                    <tr>
+                                        <td><?= Html::encode($ticketModel->codice_ticket) ?></td>
+                                        <td><?= Html::encode($ticketModel->stato ?: '-') ?></td>
+                                        <td><?= Html::encode($ticketModel->priorita ?: 'N/D') ?></td>
+                                        <td><?= Html::encode($ticketModel->scadenza ?: '-') ?></td>
+                                        <td><?= Html::encode($ticketModel->data_invio ?: '-') ?></td>
+                                        <td class="text-end">
+                                            <?= Html::a('Apri', ['tickets/view', 'id' => $ticketModel->id], ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </article>
+        </section>
+    <?php endif; ?>
 
     <?php if ($isOperatorDashboard): ?>
         <section class="dashboard-toggle-panels">
@@ -286,7 +402,9 @@ if ($ruolo === 'cliente') {
                 <?php endif; ?>
             </article>
         </section>
+    <?php endif; ?>
 
+    <?php if ($hasDashboardToggles): ?>
         <?php
         $js = <<<'JS'
 (function () {

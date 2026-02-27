@@ -4,8 +4,10 @@ namespace app\controllers;
 use Yii;
 use app\models\Assegnazioni;
 use app\models\assegnazioniTable;
+use app\models\ticketFunctions;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
+use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 
 /**
@@ -21,8 +23,27 @@ class AssegnazioniController extends Controller
         return array_merge(
             parent::behaviors(),
             [
+                'access' => [
+                    'class' => AccessControl::class,
+                    'only' => ['index', 'view', 'create', 'update', 'delete', 'my-ticket', 'my-reparto'],
+                    'rules' => [
+                        [
+                            'allow' => true,
+                            'roles' => ['@'],
+                            'actions' => ['index', 'view', 'my-ticket', 'my-reparto'],
+                        ],
+                        [
+                            'allow' => true,
+                            'roles' => ['@'],
+                            'actions' => ['create', 'update', 'delete'],
+                            'matchCallback' => static function () {
+                                return Yii::$app->user->identity->ruolo === 'amministratore';
+                            },
+                        ],
+                    ],
+                ],
                 'verbs' => [
-                    'class' => VerbFilter::className(),
+                    'class' => VerbFilter::class,
                     'actions' => [
                         'delete' => ['POST'],
                     ],
@@ -117,6 +138,23 @@ class AssegnazioniController extends Controller
         throw new NotFoundHttpException('Questa pagina non esiste.');
     }
 
+    public function actionCreate()
+    {
+        $model = new Assegnazioni();
+
+        if ($this->request->isPost) {
+            if ($model->load($this->request->post()) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
+        } else {
+            $model->loadDefaultValues();
+        }
+
+        return $this->render('create', [
+            'model' => $model,
+        ]);
+    }           
+
     public function actionMyTicket()
 {
        $searchModel = new assegnazioniTable();
@@ -143,11 +181,13 @@ class AssegnazioniController extends Controller
     $params = Yii::$app->request->queryParams;
 
     // Aggiungiamo il filtro per l'utente loggato
-    if(Yii::$app->user->identity->ruolo=='developer'){
-    $params['assegnazioniTable']['ambito']='sviluppo';
-    }else if(Yii::$app->user->identity->ruolo=='ict'){
-        $params['assegnazioniTable']['ambito']='ict';
+    $reparto = ticketFunctions::departmentFromRole(Yii::$app->user->identity->ruolo);
+    if ($reparto === null) {
+        Yii::$app->session->setFlash('error', 'Reparto non disponibile per il tuo profilo.');
+        return $this->redirect(['site/index']);
     }
+    $params['assegnazioniTable']['reparto'] = $reparto;
+
     $dataProvider = $searchModel->search($params);
 
     return $this->render('index', [

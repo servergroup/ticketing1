@@ -34,7 +34,6 @@ if (Yii::$app->session->hasFlash('error')) {
 }
 ?>
 
-<div class="register-admin-container">
 
     <div class="register-card shadow-lg">
         <h2 class="register-title">Recupero della password</h2>
@@ -51,7 +50,7 @@ if (Yii::$app->session->hasFlash('error')) {
         <?php ActiveForm::end(); ?>
     </div>
 
-</div>
+
 <style>
 
     label{
@@ -64,16 +63,28 @@ if (Yii::$app->session->hasFlash('error')) {
     align-items: center;
     padding-top: 40px;
     padding-bottom: 40px;
+   
 }
 
 /* Card */
 .register-card {
-    background: #ffffff;
+    background: white;
     border-radius: 12px;
     padding: 35px 40px;
     width: 100%;
     max-width: 480px;
-    border: 1px solid #e5e5e5;
+    border: 0.5px solid #e5e5e5;
+    
+    /* Centratura */
+    margin: 0 auto;
+}
+
+/* Il container padre deve avere: */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 /* Titolo */

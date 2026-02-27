@@ -2,8 +2,10 @@
 
 namespace app\models;
 
+use Yii;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
+use yii\db\Expression;
 use app\models\Ticket;
 
 /**
@@ -42,6 +44,14 @@ class ticketfunction extends Ticket
     public function search($params, $formName = null)
     {
         $query = Ticket::find();
+        $identity = Yii::$app->user->identity ?? null;
+        if ($identity !== null && in_array($identity->ruolo, ['developer', 'ict', 'itc', 'sistemista'], true)) {
+            $department = ticketFunctions::departmentFromRole($identity->ruolo);
+            $aliases = ticketFunctions::departmentAliases($department);
+            if (!empty($aliases)) {
+                $query->andWhere(['in', new Expression('LOWER(reparto)'), $aliases]);
+            }
+        }
 
         // add conditions that should always apply here
 

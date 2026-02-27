@@ -3,12 +3,14 @@
 namespace app\controllers;
 
 use app\eccezioni\dataException;
+use app\models\Assegnazioni;
 use app\models\Ticket;
 use app\models\ticketfunction;
 use app\models\ticketFunctions;
 use app\models\User;
 use app\models\userService;
 use Yii;
+use yii\db\Expression;
 use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 use yii\web\Controller;
@@ -26,7 +28,7 @@ class TicketsController extends Controller
                     'open', 'close', 'lavorazione', 'scadence',
                     'new-ticket', 'my-ticket',
                     'modify-ticket', 'delete-ticket',
-                    'resolve', 'ritiro', 'reintegra',
+                    'resolve', 'ritiro', 'assign', 'reintegra',
                     'my-reparto', 'my-reparto-open',
                 ],
                 'rules' => [
@@ -49,7 +51,7 @@ class TicketsController extends Controller
                         ],
                         'matchCallback' => function () {
                             $ruolo = Yii::$app->user->identity->ruolo;
-                            return in_array($ruolo, ['developer', 'ict', 'itc'], true)
+                            return in_array($ruolo, ['developer', 'ict', 'itc', 'sistemista'], true)
                                 && (bool)Yii::$app->user->identity->approvazione;
                         },
                     ],
@@ -60,7 +62,7 @@ class TicketsController extends Controller
                             'index', 'view', 'update', 'delete',
                             'open', 'close', 'lavorazione', 'scadence',
                             'new-ticket', 'my-ticket', 'modify-ticket',
-                            'delete-ticket', 'resolve', 'ritiro',
+                            'delete-ticket', 'resolve', 'ritiro', 'assign',
                             'reintegra', 'my-reparto', 'my-reparto-open',
                         ],
                         'matchCallback' => function () {
@@ -80,6 +82,8 @@ class TicketsController extends Controller
                     'delete' => ['POST'],
                     'delete-ticket' => ['POST'],
                     'resolve' => ['GET', 'POST'],
+                    'ritiro' => ['POST'],
+                    'assign' => ['POST'],
                 ],
             ],
         ];
@@ -98,9 +102,60 @@ class TicketsController extends Controller
 
     public function actionView($id)
     {
+        $ticket = $this->findModel($id);
+        $assegnazione = Assegnazioni::find()
+            ->with('operatore')
+            ->where(['codice_ticket' => $ticket->codice_ticket])
+            ->one();
+
+        $operatorOptions = [];
+        if (Yii::$app->user->identity->ruolo === 'amministratore') {
+            $allowedRoles = ticketFunctions::rolesForDepartment((string)$ticket->reparto);
+            $operators = User::find()
+                ->where(['ruolo' => $allowedRoles, 'approvazione' => 1])
+                ->orderBy(['ruolo' => SORT_ASC, 'nome' => SORT_ASC, 'cognome' => SORT_ASC])
+                ->all();
+
+            foreach ($operators as $operator) {
+                $fullName = trim($operator->nome . ' ' . $operator->cognome);
+                $operatorOptions[(int)$operator->id] = $fullName . ' - ' . $operator->ruolo;
+            }
+        }
+
         return $this->render('view', [
-            'model' => $this->findModel($id),
+            'model' => $ticket,
+            'assegnazione' => $assegnazione,
+            'operatorOptions' => $operatorOptions,
         ]);
+    }
+
+    public function actionAssign($id)
+    {
+        $ticket = $this->findModel((int)$id);
+        $mode = mb_strtolower((string)Yii::$app->request->post('assignment_mode', 'manual'));
+        $isAutomatic = in_array($mode, ['auto', 'automatico'], true);
+        $operatorId = null;
+
+        if (!$isAutomatic) {
+            $operatorId = (int)Yii::$app->request->post('operator_id');
+        }
+
+        if (!$isAutomatic && ($operatorId === null || $operatorId <= 0)) {
+            Yii::$app->session->setFlash('error', 'Seleziona un operatore valido per l\'assegnazione manuale.');
+            return $this->redirect(['view', 'id' => $ticket->id]);
+        }
+
+        $service = new ticketFunctions();
+        if ($service->assegnaTicket((string)$ticket->codice_ticket, (string)$ticket->reparto, $operatorId)) {
+            Yii::$app->session->setFlash(
+                'success',
+                $isAutomatic ? 'Ticket assegnato automaticamente.' : 'Ticket assegnato manualmente.'
+            );
+        } else {
+            Yii::$app->session->setFlash('error', 'Assegnazione non completata.');
+        }
+
+        return $this->redirect(['view', 'id' => $ticket->id]);
     }
 
     public function actionUpdate($id)
@@ -159,7 +214,6 @@ class TicketsController extends Controller
     {
         $ticket = new ticketfunction();
         $service = new ticketFunctions();
-        $recipients = User::find()->where(['ruolo' => ['amministratore', 'ict', 'itc', 'developer']])->all();
 
         if ($ticket->load(Yii::$app->request->post())) {
             try {
@@ -173,6 +227,11 @@ class TicketsController extends Controller
                         ->where(['id_cliente' => Yii::$app->user->id])
                         ->orderBy(['id' => SORT_DESC])
                         ->one();
+
+                    $allowedRoles = ticketFunctions::rolesForDepartment((string)$ticket->reparto);
+                    $recipients = User::find()
+                        ->where(['ruolo' => $allowedRoles, 'approvazione' => 1])
+                        ->all();
 
                     foreach ($recipients as $recipient) {
                         $service->contact(
@@ -218,7 +277,7 @@ class TicketsController extends Controller
     {
         $service = new ticketFunctions();
         $userService = new userService();
-        $personale = User::find()->where(['ruolo' => ['amministratore', 'cliente', 'ict', 'itc', 'developer']])->all();
+        $personale = User::find()->where(['ruolo' => ['amministratore', 'cliente', 'ict', 'itc', 'developer', 'sistemista']])->all();
         $cliente = User::findOne(Yii::$app->user->id);
 
         if ($service->deleteTicket((int)$id)) {
@@ -243,6 +302,7 @@ class TicketsController extends Controller
 
     public function actionRitiro($codice_ticket)
     {
+        $ticket = Ticket::findOne(['codice_ticket' => (string)$codice_ticket]);
         $service = new ticketFunctions();
 
         if ($service->ritiraAssegnazione((string)$codice_ticket)) {
@@ -251,7 +311,15 @@ class TicketsController extends Controller
             Yii::$app->session->setFlash('error', 'Ritiro non effettuato correttamente');
         }
 
-        return $this->redirect(['site/index']);
+        if (!empty(Yii::$app->request->referrer)) {
+            return $this->redirect(Yii::$app->request->referrer);
+        }
+
+        if ($ticket !== null) {
+            return $this->redirect(['view', 'id' => $ticket->id]);
+        }
+
+        return $this->redirect(Yii::$app->request->referrer ?: ['site/index']);
     }
 
     public function actionModifyTicket($codiceTicket)
@@ -310,7 +378,7 @@ class TicketsController extends Controller
 
         $service = new ticketFunctions();
         $userService = new userService();
-        $personale = User::find()->where(['ruolo' => ['amministratore', 'cliente', 'ict', 'itc', 'developer']])->all();
+        $personale = User::find()->where(['ruolo' => ['amministratore', 'cliente', 'ict', 'itc', 'developer', 'sistemista']])->all();
 
         if (!$service->verifyAssegnazione($ticket->codice_ticket)) {
             Yii::$app->session->setFlash('error', 'Ticket non ancora assegnato');
@@ -336,18 +404,43 @@ class TicketsController extends Controller
 
     public function actionMyReparto()
     {
-        $reparto = in_array(Yii::$app->user->identity->ruolo, ['ict', 'itc'], true) ? 'ict' : 'sviluppo';
-        $ticket = Ticket::find()->where(['reparto' => $reparto])->all();
+        $reparto = ticketFunctions::departmentFromRole(Yii::$app->user->identity->ruolo);
+        if ($reparto === null) {
+            Yii::$app->session->setFlash('error', 'Reparto non disponibile per il tuo profilo.');
+            return $this->redirect(['site/index']);
+        }
 
-        return $this->render('myDepartment', ['ticket' => $ticket]);
+        $aliases = ticketFunctions::departmentAliases($reparto);
+        $ticket = Ticket::find()
+            ->where(['in', new Expression('LOWER(reparto)'), $aliases])
+            ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+            ->all();
+
+        return $this->render('myDepartment', [
+            'ticket' => $ticket,
+            'department' => $reparto,
+        ]);
     }
 
     public function actionMyRepartoOpen()
     {
-        $reparto = in_array(Yii::$app->user->identity->ruolo, ['ict', 'itc'], true) ? 'ict' : 'sviluppo';
-        $ticket = Ticket::find()->where(['reparto' => $reparto, 'stato' => 'aperto'])->all();
+        $reparto = ticketFunctions::departmentFromRole(Yii::$app->user->identity->ruolo);
+        if ($reparto === null) {
+            Yii::$app->session->setFlash('error', 'Reparto non disponibile per il tuo profilo.');
+            return $this->redirect(['site/index']);
+        }
 
-        return $this->render('myDepartment', ['ticket' => $ticket]);
+        $aliases = ticketFunctions::departmentAliases($reparto);
+        $ticket = Ticket::find()
+            ->where(['in', new Expression('LOWER(reparto)'), $aliases])
+            ->andWhere(['stato' => 'aperto'])
+            ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+            ->all();
+
+        return $this->render('myDepartment', [
+            'ticket' => $ticket,
+            'department' => $reparto,
+        ]);
     }
 
     protected function findModel($id)

@@ -11,8 +11,7 @@ LogAsset::register($this);
 
 
 <div class="login-box">
-    <div class="card">
-        <div class="login-card-body">
+   
 
             <p class="login-box-msg">
                <img src="<?= Yii::getAlias('@web/img/taglio_dataseed.png') ?>">
@@ -66,8 +65,6 @@ LogAsset::register($this);
 
             <?php \yii\bootstrap4\ActiveForm::end(); ?>
 
-        </div>
-    </div>
 </div>
 
 <style>

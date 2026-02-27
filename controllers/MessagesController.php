@@ -5,9 +5,11 @@ namespace app\controllers;
 use app\models\Assegnazioni;
 use app\models\Ticket;
 use app\models\TicketMessage;
+use app\models\ticketFunctions;
 use app\models\User;
 use Yii;
 use yii\data\ActiveDataProvider;
+use yii\db\Expression;
 use yii\filters\AccessControl;
 use yii\helpers\Html;
 use yii\web\Controller;
@@ -104,7 +106,6 @@ class MessagesController extends Controller
         $model = new TicketMessage();
         $userId = (int)Yii::$app->user->id;
 
-        $recipientOptions = $this->getRecipientOptions();
         $ticketOptions = $this->getTicketOptions();
 
         if ($ticketId !== null) {
@@ -113,6 +114,12 @@ class MessagesController extends Controller
                 $model->ticket_id = $ticketId;
             }
         }
+
+        $selectedTicketId = !empty($model->ticket_id) ? (int)$model->ticket_id : null;
+        $recipientOptions = $this->getRecipientOptions($selectedTicketId);
+        $recipientHint = $selectedTicketId !== null
+            ? 'Destinatari filtrati automaticamente in base al reparto del ticket.'
+            : 'Seleziona un ticket per limitare i destinatari al reparto corretto.';
 
         if ($recipientId !== null) {
             $recipientId = (int)$recipientId;
@@ -125,11 +132,17 @@ class MessagesController extends Controller
             $model->sender_id = $userId;
             $model->is_read = 0;
 
+            $selectedTicketId = !empty($model->ticket_id) ? (int)$model->ticket_id : null;
+            $recipientOptions = $this->getRecipientOptions($selectedTicketId);
+            $recipientHint = $selectedTicketId !== null
+                ? 'Destinatari filtrati automaticamente in base al reparto del ticket.'
+                : 'Seleziona un ticket per limitare i destinatari al reparto corretto.';
+
             if (!array_key_exists((int)$model->recipient_id, $recipientOptions)) {
-                $model->addError('recipient_id', 'Destinatario non valido per il tuo ruolo.');
+                $model->addError('recipient_id', 'Destinatario non valido per il reparto del ticket selezionato.');
             }
 
-            if (!empty($model->ticket_id) && !array_key_exists((int)$model->ticket_id, $ticketOptions)) {
+            if ($selectedTicketId !== null && !array_key_exists($selectedTicketId, $ticketOptions)) {
                 $model->addError('ticket_id', 'Ticket non disponibile per il tuo profilo.');
             }
 
@@ -138,6 +151,7 @@ class MessagesController extends Controller
                     'model' => $model,
                     'recipientOptions' => $recipientOptions,
                     'ticketOptions' => $ticketOptions,
+                    'recipientHint' => $recipientHint,
                 ]);
             }
 
@@ -157,6 +171,7 @@ class MessagesController extends Controller
             'model' => $model,
             'recipientOptions' => $recipientOptions,
             'ticketOptions' => $ticketOptions,
+            'recipientHint' => $recipientHint,
         ]);
     }
 
@@ -182,7 +197,7 @@ class MessagesController extends Controller
         return $model;
     }
 
-    protected function getRecipientOptions()
+    protected function getRecipientOptions(?int $ticketId = null)
     {
         $identity = Yii::$app->user->identity;
 
@@ -191,8 +206,24 @@ class MessagesController extends Controller
             ->andWhere(['approvazione' => 1])
             ->orderBy(['ruolo' => SORT_ASC, 'nome' => SORT_ASC, 'cognome' => SORT_ASC]);
 
-        if ($identity->ruolo === 'cliente') {
-            $query->andWhere(['ruolo' => ['amministratore', 'developer', 'ict', 'itc']]);
+        if ($ticketId !== null) {
+            $ticket = Ticket::findOne((int)$ticketId);
+            if ($ticket === null) {
+                return [];
+            }
+
+            $allowedRoles = ticketFunctions::rolesForDepartment((string)$ticket->reparto);
+            if ($identity->ruolo === 'cliente') {
+                $query->andWhere(['ruolo' => $allowedRoles]);
+            } else {
+                $conditions = ['ruolo' => $allowedRoles];
+                if (!empty($ticket->id_cliente)) {
+                    $conditions = ['or', ['ruolo' => $allowedRoles], ['id' => (int)$ticket->id_cliente]];
+                }
+                $query->andWhere($conditions);
+            }
+        } elseif ($identity->ruolo === 'cliente') {
+            $query->andWhere(['ruolo' => ['amministratore', 'developer', 'ict', 'itc', 'sistemista']]);
         }
 
         $users = $query->all();
@@ -214,16 +245,20 @@ class MessagesController extends Controller
         if ($identity->ruolo === 'cliente') {
             $query->andWhere(['id_cliente' => $identity->id]);
         } elseif ($identity->ruolo !== 'amministratore') {
-            $codiciTicket = Assegnazioni::find()
-                ->select('codice_ticket')
-                ->where(['id_operatore' => $identity->id])
-                ->column();
-
-            if (empty($codiciTicket)) {
-                return [];
+            $department = ticketFunctions::departmentFromRole($identity->ruolo);
+            $aliases = ticketFunctions::departmentAliases($department);
+            if (!empty($aliases)) {
+                $query->andWhere(['in', new Expression('LOWER(reparto)'), $aliases]);
+            } else {
+                $codiciTicket = Assegnazioni::find()
+                    ->select('codice_ticket')
+                    ->where(['id_operatore' => $identity->id])
+                    ->column();
+                if (empty($codiciTicket)) {
+                    return [];
+                }
+                $query->andWhere(['codice_ticket' => $codiciTicket]);
             }
-
-            $query->andWhere(['codice_ticket' => $codiciTicket]);
         }
 
         $tickets = $query->all();

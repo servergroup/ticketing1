@@ -25,10 +25,7 @@ body {
 
 body.corporate-app,
 .content-wrapper {
-    background:
-        radial-gradient(circle at 8% 5%, rgba(11, 87, 208, 0.17), transparent 38%),
-        radial-gradient(circle at 92% 88%, rgba(13, 140, 98, 0.15), transparent 30%),
-        var(--corp-bg) !important;
+    background: linear-gradient(180deg, #eef3f9 0%, #e7edf6 100%) !important;
 }
 
 h1,
@@ -44,7 +41,7 @@ h4,
 .content .container-fluid > div,
 .page-shell,
 .dashboard-shell {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), #ffffff);
+    background: #ffffff;
     border: 1px solid var(--corp-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--corp-shadow);
@@ -52,9 +49,8 @@ h4,
 }
 
 .corporate-topbar {
-    background: rgba(255, 255, 255, 0.92);
+    background: #ffffff;
     border-bottom: 1px solid var(--corp-border);
-    backdrop-filter: blur(8px);
 }
 
 .corporate-page-title {
@@ -111,6 +107,12 @@ h4,
 .dashboard-shell {
     width: 100%;
     margin: 0 auto;
+    max-width: 1360px;
+    margin-bottom: 1rem;
+}
+
+.page-shell--narrow {
+    max-width: 980px;
 }
 
 .page-head {
@@ -146,6 +148,43 @@ h4,
     border-radius: var(--radius-md);
     background: #fbfdff;
     padding: 1rem;
+}
+
+.section-card {
+    border: 1px solid var(--corp-border);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    padding: 1rem;
+}
+
+.assignment-card {
+    border-left: 4px solid var(--corp-brand);
+}
+
+.assignment-mode-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.assignment-mode-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--corp-border);
+    border-radius: 999px;
+    background: #f8fbff;
+    padding: 0.45rem 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.assignment-mode-option input {
+    margin: 0;
+}
+
+.assignment-manual-field.is-hidden {
+    display: none;
 }
 
 .dashboard-hero {

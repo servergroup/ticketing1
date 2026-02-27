@@ -7,6 +7,7 @@ use yii\widgets\ActiveForm;
 /** @var app\models\TicketMessage $model */
 /** @var array $recipientOptions */
 /** @var array $ticketOptions */
+/** @var string $recipientHint */
 
 $this->title = 'Nuovo messaggio';
 $this->params['breadcrumbs'][] = 'Messaggi';
@@ -34,6 +35,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     'prompt' => 'Seleziona destinatario',
                     'class' => 'form-control form-select',
                 ]) ?>
+                <p class="form-text text-muted mb-3"><?= Html::encode($recipientHint) ?></p>
             </div>
             <div class="col-lg-6">
                 <?= $form->field($model, 'ticket_id')->dropDownList($ticketOptions, [
@@ -61,4 +63,3 @@ $this->params['breadcrumbs'][] = $this->title;
         <?php ActiveForm::end(); ?>
     </div>
 </div>
-

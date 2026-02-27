@@ -11,11 +11,11 @@ $this->params['breadcrumbs'][] = ['label' => 'Ticket', 'url' => ['index']];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 
-<div class="page-shell ticket-form-page">
+<div class="page-shell page-shell--narrow ticket-form-page">
     <div class="page-head">
         <div>
             <h1 class="page-title"><?= Html::encode($this->title) ?></h1>
-            <p class="page-subtitle">Aggiorna i dati del ticket e mantieni tracciabilità operativa.</p>
+            <p class="page-subtitle">Aggiorna i dati del ticket mantenendo la tracciabilita operativa.</p>
         </div>
     </div>
 
@@ -36,7 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     'alta' => 'Alta',
                     'media' => 'Media',
                     'bassa' => 'Bassa',
-                ], ['prompt' => 'Seleziona priorità']) ?>
+                ], ['prompt' => 'Seleziona priorita']) ?>
             </div>
             <?php if (Yii::$app->user->identity->ruolo === 'amministratore'): ?>
                 <div class="col-md-4">

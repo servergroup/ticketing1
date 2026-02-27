@@ -29,7 +29,8 @@ class m260128_095636_table_admin extends Migration
                 'token'=>$this->string(),
                 'immagine'=>$this->string(),
                 'totp_secret'=>$this->string(),
-                'is_totp_enabled'=>$this->boolean()
+                'is_totp_enabled'=>$this->boolean(),
+                'nazionalta'=>$this->string(),
             ]
         );
     }

@@ -1,75 +1,112 @@
 <?php
+
+use app\models\Assegnazioni;
+use app\models\ticketFunctions;
 use yii\helpers\Html;
-use app\models\User;
+
 /** @var yii\web\View $this */
 /** @var app\models\Ticket[] $ticket */
+/** @var string|null $department */
+
+$this->title = 'Ticket reparto';
+$this->params['breadcrumbs'][] = ['label' => 'Ticket', 'url' => ['index']];
+$this->params['breadcrumbs'][] = $this->title;
+
+$departmentLabel = ticketFunctions::normalizeDepartment($department);
+if ($departmentLabel === ticketFunctions::DEPARTMENT_DEVELOPMENT) {
+    $departmentLabel = 'Sviluppo';
+} elseif ($departmentLabel === ticketFunctions::DEPARTMENT_SYSTEM) {
+    $departmentLabel = 'Sistemistica (ICT)';
+}
+
+$assignedCodes = [];
+$codiciTicket = [];
+foreach ($ticket as $ticketItem) {
+    if (!empty($ticketItem->codice_ticket)) {
+        $codiciTicket[] = $ticketItem->codice_ticket;
+    }
+}
+if (!empty($codiciTicket)) {
+    $assegnazioni = Assegnazioni::find()
+        ->where(['codice_ticket' => array_values(array_unique($codiciTicket))])
+        ->andWhere(['id_operatore' => Yii::$app->user->id])
+        ->all();
+    foreach ($assegnazioni as $assegnazione) {
+        $assignedCodes[(string)$assegnazione->codice_ticket] = true;
+    }
+}
 ?>
-<h1 class="text-center">Stato dei ticket di reparto</h1>
-<p class="text-center">Qui vedrai lo stato dei  ticket del tuo reparto </p>
 
-<?php if (empty($ticket)): ?>
-    <p class="text-center mt-4">Nel tuo reparto non ci sono ancora dei ticket aperti</p>
-<?php else: ?>
+<div class="page-shell">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title"><?= Html::encode($this->title) ?></h1>
+            <p class="page-subtitle">
+                Elenco ticket reparto <?= Html::encode($departmentLabel ?: '-') ?>.
+            </p>
+        </div>
+        <div class="page-actions">
+            <?= Html::a('Aperti reparto', ['tickets/my-reparto-open'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+            <?= Html::a('Tutti i ticket', ['tickets/index'], ['class' => 'btn btn-sm btn-outline-primary']) ?>
+        </div>
+    </div>
 
-<table class="table table-bordered table-striped mt-4">
-    <thead class="table-dark">
-        <tr>
-            <th>Codice Ticket</th>
-           <th>Azienda</th>
-           <th>problema</th>
-            <th>Stato</th>
-            <th>Azioni</th>
-        </tr>
-    </thead>
+    <?php if (empty($ticket)): ?>
+        <div class="detail-card text-center">
+            <p class="mb-0">Non ci sono ticket disponibili per questo reparto.</p>
+        </div>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-striped align-middle text-center">
+                <thead>
+                    <tr>
+                        <th>Codice</th>
+                        <th>Cliente</th>
+                        <th>Problema</th>
+                        <th>Priorita</th>
+                        <th>Stato</th>
+                        <th>Scadenza</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($ticket as $ticketItem): ?>
+                        <?php
+                        $cliente = $ticketItem->cliente;
+                        $clienteNome = '-';
+                        if ($cliente !== null) {
+                            $clienteNome = trim($cliente->nome . ' ' . $cliente->cognome);
+                            if ($clienteNome === '') {
+                                $clienteNome = 'Cliente #' . (int)$ticketItem->id_cliente;
+                            }
+                        }
+                        $isAssignedToMe = isset($assignedCodes[(string)$ticketItem->codice_ticket]);
+                        ?>
+                        <tr>
+                            <td><?= Html::encode($ticketItem->codice_ticket) ?></td>
+                            <td><?= Html::encode($clienteNome) ?></td>
+                            <td><?= Html::encode(mb_strimwidth((string)$ticketItem->problema, 0, 70, '...')) ?></td>
+                            <td><?= Html::encode($ticketItem->priorita ?: 'N/D') ?></td>
+                            <td><?= Html::encode($ticketItem->stato ?: '-') ?></td>
+                            <td><?= Html::encode($ticketItem->scadenza ?: '-') ?></td>
+                            <td>
+                                <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                    <?= Html::a('Apri', ['tickets/view', 'id' => $ticketItem->id], ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                                    <?= Html::a('Messaggio', ['messages/compose', 'ticketId' => $ticketItem->id], ['class' => 'btn btn-sm btn-outline-info']) ?>
+                                    <?php if ($isAssignedToMe): ?>
+                                        <?= Html::a('Risolvi', ['tickets/resolve', 'id' => $ticketItem->id], [
+                                            'class' => 'btn btn-sm btn-outline-success',
+                                            'data-method' => 'post',
+                                            'data-confirm' => 'Confermi la risoluzione del ticket?',
+                                        ]) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</div>
 
-    <tbody>
-       <?php foreach ($ticket as $ticket_item): 
-       $personale=User::findOne(['id'=>$ticket_item->id_cliente]);
-       // usa l'id numerico per essere sicuro che sia valido come HTML id 
-        $modalId = 'modalTicket-' . (int)$ticket_item->id; ?> 
-        <tr> 
-            <td> 
-                <!-- Button trigger modal -->
-                  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?= $modalId ?>"> 
-                    <?= Html::encode($ticket_item->codice_ticket) ?> 
-                </button>
-                 <!-- Modal --> 
-                  <div class="modal fade" id="<?= $modalId ?>" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="<?= $modalId ?>Label" aria-hidden="true">
-                     <div class="modal-dialog">
-                         <div class="modal-content"> 
-                            <div class="modal-header">
-                                 <h5 class="modal-title" id="<?= $modalId ?>Label">Info ticket 
-                                    <?= Html::encode($ticket_item->codice_ticket) ?></h5> 
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> 
-                                </div> 
-                                <div class="modal-body"> 
-                                    <p>ID: <?= Html::encode($ticket_item->id) ?></p> 
-                                    <p>Codice ticket: <?= Html::encode($ticket_item->codice_ticket) ?></p> 
-                                    <?php if ($ticket_item->scadenza === null): ?> <p>Scadenza: Non definita</p>
-                                         <?php else: ?> <p>Scadenza: <?= Html::encode($ticket_item->scadenza) ?></p> 
-                                            <?php endif; ?> </div> <div class="modal-footer">
-                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button> 
-                                                </div> 
-                                            </div> 
-                                        </div> 
-                                    </div> 
-                             
-                
-                    <td><?= Html::encode($personale->azienda); ?></td>
-                    <td><?= Html::encode($ticket_item->problema); ?></td>
-                    <td><?= Html::encode($ticket_item->stato); ?></td>
-                    <td>  
-                    <?= Html::a('<img src='.Yii::getAlias('@web/img/delete.png').'>',['tickets/delete-ticket','id'=>$ticket_item->id]) ?>
-                    <?= Html::a(
-    Html::img(Yii::getAlias('@web/img/pen.png')),
-    ['tickets/modify-ticket', 'codiceTicket' => $ticket_item->codice_ticket]
-) ?>
-
-
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
-
-<?php endif; ?>

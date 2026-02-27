@@ -10,6 +10,8 @@ use yii\helpers\Html;
 
 $this->title = 'Assegnazioni ticket';
 $this->params['breadcrumbs'][] = $this->title;
+
+$departmentAttribute = $searchModel->hasAttribute('reparto') ? 'reparto' : 'ambito';
 ?>
 
 <div class="page-shell">
@@ -34,13 +36,32 @@ $this->params['breadcrumbs'][] = $this->title;
         'columns' => [
             'id',
             'codice_ticket',
-            'id_operatore',
             [
-                'attribute' => 'reparto',
-                'filter' => Html::activeDropDownList($searchModel, 'reparto', [
+                'label' => 'Operatore',
+                'value' => static function ($model) {
+                    if ($model->operatore === null) {
+                        return 'Operatore #' . (int)$model->id_operatore;
+                    }
+                    $nome = trim($model->operatore->nome . ' ' . $model->operatore->cognome);
+                    return $nome . ' - ' . $model->operatore->ruolo;
+                },
+            ],
+            [
+                'attribute' => $departmentAttribute,
+                'label' => 'Reparto',
+                'value' => static function ($model) {
+                    if ($model->hasAttribute('reparto') && !empty($model->reparto)) {
+                        return $model->reparto;
+                    }
+                    if ($model->hasAttribute('ambito') && !empty($model->ambito)) {
+                        return $model->ambito;
+                    }
+                    return '-';
+                },
+                'filter' => Html::activeDropDownList($searchModel, $departmentAttribute, [
                     '' => 'Tutti',
                     'sviluppo' => 'Sviluppo',
-                    'ict' => 'ICT',
+                    'ict' => 'Sistemistica (ICT)',
                 ], ['class' => 'form-select form-select-sm']),
             ],
             [
@@ -88,4 +109,3 @@ $this->params['breadcrumbs'][] = $this->title;
         ],
     ]) ?>
 </div>
-

@@ -10,10 +10,108 @@ use app\models\Ticket;
 use app\models\Assegnazioni;
 use app\models\TempiTicket;
 
-use yii\db\Expression;
-
 class ticketFunctions extends Model
 {
+    public const DEPARTMENT_DEVELOPMENT = 'sviluppo';
+    public const DEPARTMENT_SYSTEM = 'ict';
+
+    /**
+     * Normalizza il nome reparto verso i valori usati internamente.
+     */
+    public static function normalizeDepartment(?string $department): ?string
+    {
+        if ($department === null) {
+            return null;
+        }
+
+        $value = mb_strtolower(trim($department));
+        if ($value === '') {
+            return null;
+        }
+
+        $map = [
+            'sviluppo' => self::DEPARTMENT_DEVELOPMENT,
+            'sviluppatore' => self::DEPARTMENT_DEVELOPMENT,
+            'developer' => self::DEPARTMENT_DEVELOPMENT,
+            'development' => self::DEPARTMENT_DEVELOPMENT,
+            'ict' => self::DEPARTMENT_SYSTEM,
+            'itc' => self::DEPARTMENT_SYSTEM,
+            'it' => self::DEPARTMENT_SYSTEM,
+            'sistemistica' => self::DEPARTMENT_SYSTEM,
+            'sistemista' => self::DEPARTMENT_SYSTEM,
+            'sysadmin' => self::DEPARTMENT_SYSTEM,
+        ];
+
+        return $map[$value] ?? $value;
+    }
+
+    /**
+     * Restituisce i ruoli operativi abilitati per il reparto.
+     *
+     * @return string[]
+     */
+    public static function rolesForDepartment(?string $department): array
+    {
+        $normalized = self::normalizeDepartment($department);
+        if ($normalized === self::DEPARTMENT_DEVELOPMENT) {
+            return ['developer'];
+        }
+
+        if ($normalized === self::DEPARTMENT_SYSTEM) {
+            return ['ict', 'itc', 'sistemista'];
+        }
+
+        return ['developer', 'ict', 'itc', 'sistemista'];
+    }
+
+    /**
+     * Restituisce gli alias validi per query case-insensitive sul reparto.
+     *
+     * @return string[]
+     */
+    public static function departmentAliases(?string $department): array
+    {
+        $normalized = self::normalizeDepartment($department);
+        if ($normalized === self::DEPARTMENT_DEVELOPMENT) {
+            return ['sviluppo', 'sviluppatore', 'developer', 'development'];
+        }
+
+        if ($normalized === self::DEPARTMENT_SYSTEM) {
+            return ['ict', 'itc', 'it', 'sistemistica', 'sistemista', 'sysadmin'];
+        }
+
+        return $normalized === null ? [] : [$normalized];
+    }
+
+    public static function departmentFromRole(?string $role): ?string
+    {
+        if ($role === null) {
+            return null;
+        }
+
+        $normalizedRole = mb_strtolower(trim($role));
+        if (in_array($normalizedRole, ['developer', 'sviluppatore'], true)) {
+            return self::DEPARTMENT_DEVELOPMENT;
+        }
+
+        if (in_array($normalizedRole, ['ict', 'itc', 'sistemista', 'sysadmin'], true)) {
+            return self::DEPARTMENT_SYSTEM;
+        }
+
+        return null;
+    }
+
+    private function applyDepartmentToAssignment(Assegnazioni $assegnazione, string $department): void
+    {
+        if ($assegnazione->hasAttribute('reparto')) {
+            $assegnazione->setAttribute('reparto', $department);
+        }
+
+        if ($assegnazione->hasAttribute('ambito')) {
+            $assegnazione->setAttribute('ambito', $department);
+        }
+    }
+
     /**
      * Genera codice casuale alfanumerico
      */
@@ -70,7 +168,7 @@ class ticketFunctions extends Model
     public function newTicket($problema, $ambito, $scadenza, $priorita): bool
     {
         $ticket = new ticketfunction();
-        
+        $ambitoNormalizzato = self::normalizeDepartment((string)$ambito) ?? (string)$ambito;
 
         $cliente = User::findOne(['username' => Yii::$app->user->identity->username]);
         if (!$cliente) {
@@ -79,7 +177,7 @@ class ticketFunctions extends Model
         }
 
         $ticket->problema = $problema;
-        $ticket->reparto = $ambito;
+        $ticket->reparto = $ambitoNormalizzato;
         $ticket->stato = 'aperto';
         $ticket->codice_ticket = (string)$this->code_random();
         $ticket->scadenza = $scadenza ?? null;
@@ -104,14 +202,16 @@ class ticketFunctions extends Model
     public function chiudiTicket(int $id_ticket): bool
     {
         $ticket = Ticket::findOne($id_ticket);
-        $tempi=TempiTicket::findOne(['id_ticket'=>$id_ticket]);
+        $tempi = TempiTicket::findOne(['id_ticket' => $id_ticket]);
         if (!$ticket) {
             return false;
         }
         $ticket->stato = 'chiuso';
-        $tempi->chiuso_il=date('Y-m-d H:i:s');
-        $tempi->ora_fine=date('H:i:s');
-        $tempi->save();
+        if ($tempi !== null) {
+            $tempi->chiuso_il = date('Y-m-d H:i:s');
+            $tempi->ora_fine = date('H:i:s');
+            $tempi->save(false);
+        }
         return $ticket->save();
     }
 
@@ -159,11 +259,13 @@ class ticketFunctions extends Model
     public function deleteTicket(int $id): bool
     {
         $ticket = Ticket::findOne($id);
-        $tempi=TempiTicket::findOne(['id_ticket'=>$id]);
-        
-       
+        if ($ticket === null) {
+            return false;
+        }
+        $tempi = TempiTicket::findOne(['id_ticket' => $id]);
+
         $cliente = User::findOne(['username' => Yii::$app->user->identity->username]);
-       
+
         $history = new History();
         $history->id_ticket = $ticket->id;
         $history->id_operatore = $cliente ? $cliente->id : null;
@@ -171,8 +273,8 @@ class ticketFunctions extends Model
         $history->stato = $ticket->stato;
         $history->save(false);
 
-        if($tempi){
-        $tempi->delete();
+        if ($tempi) {
+            $tempi->delete();
         }
 
         return $ticket->delete();
@@ -183,20 +285,16 @@ class ticketFunctions extends Model
      */
     public function random_num(string $ambito): ?int
     {
-        $ruolo = null;
-        $ambitoLower = mb_strtolower($ambito);
+        $ruoli = self::rolesForDepartment($ambito);
 
-        if ($ambitoLower === 'sviluppo' || $ambitoLower === 'sviluppatore') {
-            $ruolo = 'developer';
-        } elseif ($ambitoLower === 'ict'|| $ambitoLower === 'ict') {
-            $ruolo = 'ict';
-        }
-
-        if ($ruolo === null) {
+        if (empty($ruoli)) {
             return null;
         }
 
-        $ids = User::find()->select('id')->where(['ruolo' => $ruolo])->column();
+        $ids = User::find()
+            ->select('id')
+            ->where(['ruolo' => $ruoli, 'approvazione' => 1])
+            ->column();
         if (empty($ids)) {
             return null;
         }
@@ -216,7 +314,7 @@ class ticketFunctions extends Model
     /**
      * Assegna un ticket: crea assegnazione, imposta stato e avvia tracking tempi
      */
-    public function assegnaTicket(string $codice_ticket, string $ambito): bool
+    public function assegnaTicket(string $codice_ticket, string $ambito, ?int $operatoreId = null): bool
     {
         $ticket = Ticket::findOne(['codice_ticket' => $codice_ticket]);
         if (!$ticket) {
@@ -224,18 +322,35 @@ class ticketFunctions extends Model
             return false;
         }
 
-        $operatoreId = $this->random_num($ambito);
-        Yii::info('OperatoreId da random_num: ' . var_export($operatoreId, true), __METHOD__);
+        $ambito = self::normalizeDepartment($ambito) ?? $ambito;
+        $allowedRoles = self::rolesForDepartment($ambito);
+
+        if ($operatoreId === null) {
+            $operatoreId = $this->random_num($ambito);
+        } else {
+            $operatoreValido = User::find()
+                ->where(['id' => $operatoreId, 'approvazione' => 1])
+                ->andWhere(['ruolo' => $allowedRoles])
+                ->exists();
+
+            if (!$operatoreValido) {
+                Yii::$app->session->setFlash('error', 'Operatore selezionato non valido.');
+                return false;
+            }
+        }
 
         if ($operatoreId === null) {
             Yii::$app->session->setFlash('error', 'Nessun operatore disponibile per questo ambito');
             return false;
         }
 
-        $assegnazioni = new Assegnazioni();
+        $assegnazioni = Assegnazioni::findOne(['codice_ticket' => $codice_ticket]);
+        if ($assegnazioni === null) {
+            $assegnazioni = new Assegnazioni();
+            $assegnazioni->codice_ticket = $codice_ticket;
+        }
         $assegnazioni->id_operatore = (int)$operatoreId;
-        $assegnazioni->codice_ticket = $codice_ticket;
-        $assegnazioni->reparto = $ambito;
+        $this->applyDepartmentToAssignment($assegnazioni, $ambito);
 
         $ticket->stato = 'in lavorazione';
 
@@ -308,7 +423,7 @@ class ticketFunctions extends Model
 
         $ticket->problema = $problema;
         $ticket->priorita = $priorita;
-        $ticket->reparto = $ambito;
+        $ticket->reparto = self::normalizeDepartment($ambito) ?? $ambito;
         $ticket->scadenza = $scadenza;
         return $ticket->save();
     }

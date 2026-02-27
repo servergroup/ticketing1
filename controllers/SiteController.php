@@ -24,7 +24,9 @@ use app\models\Turni;
 use app\models\Mail;
 use app\models\TicketMessage;
 use app\models\ticketFunctions;
+use app\models\ticketfunction;
 use Exception;
+use yii\db\Expression;
 
 class SiteController extends Controller
 {
@@ -82,11 +84,24 @@ class SiteController extends Controller
         $assegnazioni = Assegnazioni::find()->where(['id_operatore' => $user->id])->all();
 
         $isOperator = !in_array($user->ruolo, ['cliente', 'amministratore'], true);
+        $customerRecentTickets = [];
+        $inlineTicketModel = null;
         $operatorAssignedTicketCodes = [];
         $operatorAssignedTickets = [];
         $operatorDepartmentTickets = [];
         $operatorRecentMessages = [];
         $operatorDepartment = null;
+
+        if ($user->ruolo === 'cliente') {
+            $customerRecentTickets = Ticket::find()
+                ->where(['id_cliente' => $user->id])
+                ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+                ->limit(10)
+                ->all();
+
+            $inlineTicketModel = new ticketfunction();
+            $inlineTicketModel->id_cliente = $user->id;
+        }
 
         if ($isOperator) {
             $operatorAssignedTicketCodes = Assegnazioni::find()
@@ -103,12 +118,15 @@ class SiteController extends Controller
                     ->all();
             }
 
-            $operatorDepartment = in_array($user->ruolo, ['ict', 'itc'], true) ? 'ict' : 'sviluppo';
-            $operatorDepartmentTickets = Ticket::find()
-                ->where(['reparto' => $operatorDepartment])
-                ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
-                ->limit(10)
-                ->all();
+            $operatorDepartment = ticketFunctions::departmentFromRole($user->ruolo);
+            if ($operatorDepartment !== null) {
+                $departmentAliases = ticketFunctions::departmentAliases($operatorDepartment);
+                $operatorDepartmentTickets = Ticket::find()
+                    ->where(['in', new Expression('LOWER(reparto)'), $departmentAliases])
+                    ->orderBy(['data_invio' => SORT_DESC, 'id' => SORT_DESC])
+                    ->limit(10)
+                    ->all();
+            }
         }
 
         $unreadMessages = 0;
@@ -177,6 +195,8 @@ class SiteController extends Controller
             'operatorDepartmentTickets' => $operatorDepartmentTickets,
             'operatorRecentMessages' => $operatorRecentMessages,
             'operatorDepartment' => $operatorDepartment,
+            'customerRecentTickets' => $customerRecentTickets,
+            'inlineTicketModel' => $inlineTicketModel,
         ]);
     }
     public function actionLogin()
@@ -200,7 +220,7 @@ class SiteController extends Controller
                         Yii::$app->session->set('pending_user_id', $user->id);
                         return $this->redirect(['verify-2fa']);
                     } // 🔓 LOGIN NORMALE 
-                    if (in_array($user->ruolo, ['amministratore', 'developer', 'itc'])) {
+                    if (in_array($user->ruolo, ['amministratore', 'developer', 'itc', 'ict', 'sistemista'], true)) {
                         return $this->redirect(['attesa']);
                     }
                     if ($user->ruolo == 'cliente') {
@@ -364,6 +384,7 @@ class SiteController extends Controller
             }
             if ($user && $function->emailRequest($user->email)) {
                 Yii::$app->session->setFlash('success', 'Controlla la tua email, ti abbiamo inviato il link di recupero');
+                
                 return $this->redirect('mail');
             } else {
                 Yii::$app->session->setFlash('error', 'Qualcosa è andato storto nel tentativo di recupero dei dati');
@@ -450,6 +471,7 @@ class SiteController extends Controller
                     $user->ruolo,
                     $user->partita_iva,
                     $user->azienda,
+                    $user->nazione,
                     $user->recapito_telefonico,
                     $user->telegram_username,
                     $user->telegram_chat_id

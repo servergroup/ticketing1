@@ -3,7 +3,7 @@
 return [
     'adminEmail' => 'macagninoriccardo85@gmail.com',
     'senderEmail' => 'macagninoriccardo85@gmail.com',
-    'senderName' => 'Invio email',
+    'senderName' => 'Dataseed',
     'smtpDsn' => getenv('SMTP_DSN') ?: '',
     'telegramBotToken' => '',
 ];

@@ -125,6 +125,7 @@ class userService extends Model
         $ruolo,
         $partita_iva,
         $azienda,
+        $nazione,
         $recapito_telefonico,
         $telegram_username = null,
         $telegram_chat_id = null
@@ -159,6 +160,7 @@ class userService extends Model
         $user->access_token = Yii::$app->security->generateRandomString();
         $user->ruolo = $ruolo;
         $user->azienda=$azienda;
+        $user->nazione=$nazione;
         $user->recapito_telefonico=$recapito_telefonico;
         $user->telegram_username = $telegram_username;
         $user->telegram_chat_id = $telegram_chat_id;

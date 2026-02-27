@@ -40,9 +40,9 @@ $config = [
 
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
-            'useFileTransport' => empty($smtpDsn),
+            'useFileTransport' => false,
             'transport' => [
-                'dsn' => $smtpDsn ?: 'smtp://localhost:25',
+                'dsn' =>'smtp://macagninoriccardo85@gmail.com:unjcmmmftdjrdqsf@smtp.gmail.com:587?encryption=tls',
             ],
         ],
 
@@ -79,7 +79,7 @@ $config = [
                 ],
                 'database'
             );
-            throw new \yii\web\ServiceUnavailableHttpException('Database non disponibile. Riprova piÃ¹ tardi.');
+            throw new \yii\web\ServerErrorHttpException('Database non disponibile. Riprova più tardi.');
         }
     },
 
@@ -97,3 +97,4 @@ if (YII_ENV_DEV) {
 
 
 return $config;
+
