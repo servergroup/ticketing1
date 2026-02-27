@@ -16,7 +16,7 @@ $this->registerCssFile('https://code.ionicframework.com/ionicons/2.0.1/css/ionic
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     
     <!-- Tell the browser to be responsive to screen width -->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <?php $this->registerCsrfMetaTags() ?>
     <?php $this->head() ?>
 </head>

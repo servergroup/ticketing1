@@ -1,5 +1,5 @@
 (function () {
-    const SELECTOR = '.grid-view > table, table.ticket-table, table.table.table-striped';
+    const SELECTOR = '.grid-view table, table.ticket-table, table.table.table-striped';
     const STORAGE_PREFIX = 'smart-table-v1:';
 
     function normalizeText(value) {
@@ -157,6 +157,20 @@
         return { search, emptyState };
     }
 
+    function ensureResponsiveWrapper(table) {
+        if (!table || !table.parentNode) {
+            return;
+        }
+        if (table.closest('.table-responsive') || table.closest('.smart-table-shell') || table.closest('.table-responsive-auto')) {
+            return;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-responsive table-responsive-auto';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    }
+
     function enhanceTable(table, tableIndex) {
         if (!table.tHead || !table.tBodies.length || table.dataset.tableEnhanced === '1') {
             return;
@@ -252,6 +266,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        const responsiveTables = document.querySelectorAll('.grid-view table, table.ticket-table, table.table');
+        responsiveTables.forEach((table) => ensureResponsiveWrapper(table));
+
         const tables = document.querySelectorAll(SELECTOR);
         tables.forEach((table, index) => enhanceTable(table, index));
     });

@@ -17,10 +17,28 @@
     --radius-sm: 8px;
 }
 
+html {
+    font-size: clamp(14px, 0.2vw + 13px, 18px);
+}
+
 html,
 body {
     font-family: "Source Sans 3", sans-serif;
     color: var(--corp-ink);
+    line-height: 1.45;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+    max-width: 100%;
+    height: auto;
 }
 
 body.corporate-app,
@@ -46,6 +64,10 @@ h4,
     border-radius: var(--radius-lg);
     box-shadow: var(--corp-shadow);
     padding: 1rem 1.1rem;
+}
+
+.content .container-fluid {
+    padding-inline: clamp(0.35rem, 1.3vw, 1rem);
 }
 
 .corporate-topbar {
@@ -107,7 +129,7 @@ h4,
 .dashboard-shell {
     width: 100%;
     margin: 0 auto;
-    max-width: 1360px;
+    max-width: min(96vw, 1360px);
     margin-bottom: 1rem;
 }
 
@@ -219,7 +241,7 @@ h4,
 }
 
 .hero-messages {
-    min-width: 180px;
+    min-width: clamp(140px, 25vw, 220px);
     background: rgba(255, 255, 255, 0.17);
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: var(--radius-md);
@@ -274,7 +296,7 @@ h4,
 
 .quick-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 0.7rem;
     margin-bottom: 1rem;
 }
@@ -500,7 +522,7 @@ button.quick-action {
 }
 
 .smart-table-search {
-    min-width: 230px;
+    min-width: clamp(150px, 24vw, 230px);
     border-radius: 9px;
 }
 
@@ -519,10 +541,18 @@ button.quick-action {
 }
 
 .table {
+    width: 100%;
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid var(--corp-border);
     background: #fff;
+}
+
+.table-responsive,
+.smart-table-shell,
+.table-responsive-auto {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .table thead th {
@@ -588,6 +618,11 @@ button.quick-action {
     .hero-messages {
         min-width: 0;
     }
+
+    .kpi-grid,
+    .quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -620,11 +655,91 @@ button.quick-action {
         flex-direction: column;
         align-items: stretch;
     }
+
+    .dashboard-row-actions {
+        justify-content: flex-start;
+    }
+
+    .dashboard-panel-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .kpi-grid,
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-hero {
+        padding: 1rem;
+    }
+
+    .hero-title {
+        font-size: clamp(1.15rem, 6vw, 1.45rem);
+    }
+
+    .hero-messages-value {
+        font-size: clamp(1.4rem, 7vw, 1.8rem);
+    }
+
+    .quick-action {
+        padding: 0.72rem;
+    }
+
+    .dashboard-panel {
+        padding: 0.75rem;
+    }
+
+    .table {
+        min-width: 620px;
+    }
+}
+
+@media (max-width: 420px) {
+    .content .container-fluid > div,
+    .page-shell,
+    .dashboard-shell {
+        padding: 0.72rem;
+    }
+
+    .page-title {
+        font-size: 1.12rem;
+    }
+
+    .dashboard-panel-head h2 {
+        font-size: 1rem;
+    }
+
+    .btn {
+        white-space: normal;
+    }
+
+    .table {
+        min-width: 560px;
+    }
 }
 
 @media (min-width: 1800px) {
     .content .container-fluid {
         max-width: 1720px;
         margin-inline: auto;
+    }
+
+    .page-shell,
+    .dashboard-shell {
+        max-width: min(93vw, 1760px);
+    }
+}
+
+@media (min-width: 2200px) {
+    .content .container-fluid {
+        max-width: 2140px;
+        margin-inline: auto;
+    }
+
+    .page-shell,
+    .dashboard-shell {
+        max-width: min(92vw, 2100px);
     }
 }
