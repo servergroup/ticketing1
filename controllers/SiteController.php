@@ -239,7 +239,7 @@ class SiteController extends Controller
     }
     public function actionVerify2fa()
     {
-        $userId = Yii::$app->user->identity->id;
+        $userId = Yii::$app->session->get('pending_user_id');
         if (!$userId) {
             return $this->redirect(['login']);
         }
@@ -252,36 +252,22 @@ class SiteController extends Controller
 
           if ($tfa->verifyCode($user->totp_secret, $model->code)) {
 
-          if(!$user->is_totp_enabled)
-            {
     // Attiva la 2FA definitivamente
     $user->is_totp_enabled = 1;
-    $user->save();
+    $user->save(false);
 
     // Rimuove la sessione temporanea
     Yii::$app->session->remove('pending_user_id');
 
     // Login dell’utente
     Yii::$app->user->login($user);
-    
+
     return $this->goHome();
-    }else{
-         $user->is_totp_enabled = 0;
-
-    $user->save();
-
-    // Rimuove la sessione temporanea
-    Yii::$app->session->remove('pending_user_id');
-
-    
-    return $this->redirect(['logout']);
-    }
+}
 
             $model->addError('code', 'Codice non valido');
         }
-        }
         return $this->render('verify-2fa', ['model' => $model]);
-    
     }
     public function actionLogout()
     {
@@ -291,22 +277,19 @@ class SiteController extends Controller
         return $this->goHome();
     }
 
-    /*
     public function actionDisable2fa()
     {
         $function=new userService();
 
         if($function->disattiva2fa()){
-            
             Yii::$app->session->setFlash('success','Autenticazione a due fattori disattivata correttamente');
-
             return $this->redirect(['index']);
         }else{
              Yii::$app->session->setFlash('error','Autenticazione a due fattori non disattivata correttamente');
             return $this->redirect(['index']);
         }
     }
-*/
+
 
    public function actionEnable2fa()
 {
@@ -495,9 +478,18 @@ class SiteController extends Controller
                 )) {
 
                     Yii::$app->session->setFlash('success', 'Registrazione avvenuta correttamente');
-                   
-                  return  $this->redirect(['login']);
-                    
+                    // Invia email con link recupero (link vuoto ⚠)
+        $function->contact($user->email, '
+        <html>
+        <body>
+        <p>Salve '.$user->nome.',
+        benvenuto nel nostro portale,siamo fieri di accogliere la sua registrazione e le auguriamo una buona avvvnetura con noi .
+        L\' indirizzo username che le è stato affidato è: '.$user->username.'
+        Grazie e cordiali saluti</p>
+        </body>
+        </html>
+        ', 'Registrazione utente '. $user->email.' ');
+                    return $this->redirect(['login']);
                 } else {
 
                     Yii::$app->session->setFlash('error', 'Registrazione fallita, riprovare');

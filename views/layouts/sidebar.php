@@ -20,7 +20,10 @@ try {
 <?php
 $avatarPath = Yii::getAlias('@web/img/profile.png');
 if (!empty($identity->immagine)) {
-    $avatarPath = Yii::getAlias('@web/img/upload/' . $identity->immagine);
+    $avatarFile = Yii::getAlias('@webroot/img/upload/' . $identity->immagine);
+    if (is_file($avatarFile)) {
+        $avatarPath = Yii::getAlias('@web/img/upload/' . $identity->immagine);
+    }
 }
 ?>
 </div>

@@ -4,9 +4,13 @@ use yii\widgets\ActiveForm;
 /* @var $this yii\web\View */
 /* @var $account app\models\User */
 
-$imageUrl = $account->immagine
-    ? Yii::getAlias('@web/img/upload/' . $account->immagine)
-    : Yii::getAlias('@web/img/profile.png');
+$imageUrl = Yii::getAlias('@web/img/profile.png');
+if (!empty($account->immagine)) {
+    $imagePath = Yii::getAlias('@webroot/img/upload/' . $account->immagine);
+    if (is_file($imagePath)) {
+        $imageUrl = Yii::getAlias('@web/img/upload/' . $account->immagine);
+    }
+}
 ?>
 
 <div class="profile-shell">

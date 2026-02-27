@@ -21,13 +21,7 @@ class AppAsset extends AssetBundle
     public $basePath = '@webroot';
     public $baseUrl = '@web';
     public $css = [
-        'css/site.css',
-        'css/register.css',
-        'css/ticket.css',
-        'css/operatori.css'
-        
-        
-        
+        'css/corporate-ui.css',
     ];
     public $js = [
     ];

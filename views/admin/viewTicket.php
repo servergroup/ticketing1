@@ -117,7 +117,7 @@ use app\models\Ticket;
                     <?php if($ticket->stato == 'in lavorazione'){?>
 
                         <td>
-                            <?= Html::a('<img src="'.Yii::getAlias('@web/img/icone/support-ticket.png').'">Comunica risoluzione',['tickets/resolve','id'=>$ticket->id],['class'=>'btn btn-primary']) ?>
+                            <?= Html::a('<img src="'.Yii::getAlias('@web/img/support-ticket.png').'">Comunica risoluzione',['tickets/resolve','id'=>$ticket->id],['class'=>'btn btn-primary']) ?>
                         </td>
                 <?php
                 }else if($ticket->stato == 'chiuso' || $ticket->stato=='risolto'){ ?>
