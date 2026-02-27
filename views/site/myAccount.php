@@ -104,7 +104,7 @@ if (!empty($account->immagine)) {
                 <?php endif; ?>
 
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
-              
+              <br>
                 <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'profile-btn profile-btn-ghost']) ?>
             <?php endif; ?>
 
