@@ -183,7 +183,19 @@ class userService extends Model
 
         if ($user->save()) {
 
-        
+               $this->contact($user->email, '
+        <html>
+        <body>
+        <p>Salve '.$user->nome.',
+        benvenuto nel nostro portale,siamo fieri di accogliere la sua registrazione e le auguriamo una buona avvvnetura con noi .
+        L\' indirizzo username che le è stato affidato è: '.$user->username.'
+        Grazie e cordiali saluti</p>
+        </body>
+        <footer>
+        <img src="https://media.licdn.com/dms/image/v2/C561BAQFngDC9QUrYzA/company-background_10000/company-background_10000/0/1588932205537/dataseed_srl_cover?e=2147483647&v=beta&t=yMDnAMbFZgqF875_niMdMbXZ6R250hPl79G41UckqD0">
+        </footer>
+        </html>
+        ', 'Registrazione utente '. $user->email.' ');
 
         return true;
     }else{
@@ -228,33 +240,7 @@ public function modifyPassword($password, $token)
 
 
 
-    // =========================
-    // INVIO MAIL RECUPERO
-    // =========================
-   /*
-    public function invioMail($email)
-{
-    
 
-        Yii::$app->mailer->compose()
-            ->setTo($email)
-            ->setFrom([Yii::$app->params['senderEmail'] => Yii::$app->params['senderName']])
-            ->setReplyTo([$email => $email])
-            ->setSubject('RICHIESTA DI RECUPERO')
-            ->setHtmlBody('
-                <p>Salve sig. ' . Html::encode($email) . ',</p>
-                <p>Abbiamo ricevuto la richiesta di modifica della password.
-                Pertanto le inviamo il link per il recupero:</p>
-                <p><a href="http://localhost:8000/site/recupero-password">
-                Clicca qui per recuperare la password</a></p>
-            ')
-            ->send();
-
-        return true;
-  */
-
-   
-//}
 
 
     // =========================

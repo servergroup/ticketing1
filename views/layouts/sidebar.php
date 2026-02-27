@@ -15,12 +15,16 @@ try {
 } catch (\Throwable $e) {
     $unreadMessages = 0;
 }
-
+?>
+<div class="profiling">
+<?php
 $avatarPath = Yii::getAlias('@web/img/profile.png');
 if (!empty($identity->immagine)) {
     $avatarPath = Yii::getAlias('@web/img/upload/' . $identity->immagine);
 }
-
+?>
+</div>
+<?php
 $messageLabel = 'Ricevuti';
 if ($unreadMessages > 0) {
     $messageLabel .= ' <span class="badge badge-warning right">' . $unreadMessages . '</span>';
@@ -130,3 +134,14 @@ if ($ruolo === 'amministratore') {
         </nav>
     </div>
 </aside>
+
+<style>
+    /* Quando la sidebar è collassata */
+.image img {
+    width: 30px;
+    height: 30px;
+    transition: all 0.3s ease;
+}
+
+
+</style>

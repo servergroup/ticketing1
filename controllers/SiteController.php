@@ -495,18 +495,9 @@ class SiteController extends Controller
                 )) {
 
                     Yii::$app->session->setFlash('success', 'Registrazione avvenuta correttamente');
-                    // Invia email con link recupero (link vuoto ⚠)
-        $function->contact($user->email, '
-        <html>
-        <body>
-        <p>Salve '.$user->nome.',
-        benvenuto nel nostro portale,siamo fieri di accogliere la sua registrazione e le auguriamo una buona avvvnetura con noi .
-        L\' indirizzo username che le è stato affidato è: '.$user->username.'
-        Grazie e cordiali saluti</p>
-        </body>
-        </html>
-        ', 'Registrazione utente '. $user->email.' ');
-                    return $this->redirect(['login']);
+                   
+                  return  $this->redirect(['login']);
+                    
                 } else {
 
                     Yii::$app->session->setFlash('error', 'Registrazione fallita, riprovare');

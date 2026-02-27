@@ -18,6 +18,7 @@ $imageUrl = $account->immagine
             <h1><?= Html::encode($account->nome . ' ' . $account->cognome) ?></h1>
             <p>@<?= Html::encode($account->username) ?></p>
             <span class="profile-role"><?= Html::encode($account->ruolo) ?></span>
+            
         </div>
     </div>
 
@@ -27,6 +28,20 @@ $imageUrl = $account->immagine
             <div class="info-row">
                 <span>Email</span>
                 <strong><?= Html::encode($account->email ?: '-') ?></strong>
+
+                 <span>Nome:</span>
+            <strong><?= Html::encode($account->nome) ?></strong>
+            
+            <span>Cgnome:</span>
+            <strong><?= Html::encode($account->cognome) ?></strong>
+           
+            <?php if($account->approvazione) :?>
+            <span>Autorizzato:</span>
+            <strong><?= Html::encode('Si') ?></strong>
+        <?php else: ?>
+             <span>Autorizzato:</span>
+            <strong><?= Html::encode('No') ?></strong>
+            <?php endif;?>
             </div>
            
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
@@ -35,7 +50,11 @@ $imageUrl = $account->immagine
                     <strong><?= Html::encode($account->partita_iva ?: '-') ?></strong>
                 </div>
             <?php endif; ?>
+
+            
         </section>
+
+     
 
         <section class="profile-card actions-card">
             <h2>Azioni rapide</h2>
@@ -58,7 +77,9 @@ $imageUrl = $account->immagine
             ]) ?>
             <small class="text-muted d-block mb-2">Formati supportati: JPG, PNG, WEBP. Dimensione massima: 5 MB.</small>
 
-            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost']) ?>
+            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost','style'=>'gap:20px;']) ?>
+          
+            
             <?= Html::a('Modifica password', ['site/mail'], ['class' => 'profile-btn profile-btn-ghost']) ?>
 
             <?php if (!$account->is_totp_enabled): ?>
@@ -139,6 +160,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 .profile-grid{
     gap:10px;
+    display:grid;
+    grid-template-columns: 2fr;
 }
 
 
