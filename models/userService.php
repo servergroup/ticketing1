@@ -183,16 +183,7 @@ class userService extends Model
 
         if ($user->save()) {
 
-        // Invia email con link recupero (link vuoto ⚠)
-        $this->contact($user->email, '
-        <html>
-        <body>
-        <p>Salve '.$user->nome.',
-        benvenuto nel nostro portale,siamo fieri di accogliere la sua registrazione e le auguriamo una buona avvvnetura con noi .
-        Grazie e cordiali saluti</p>
-        </body>
-        </html>
-        ', 'Registrazione utente '. $user->email.' ');
+        
 
         return true;
     }else{
