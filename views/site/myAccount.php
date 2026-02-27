@@ -1,6 +1,7 @@
 <?php
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
+
 /* @var $this yii\web\View */
 /* @var $account app\models\User */
 
@@ -10,6 +11,8 @@ $imageUrl = $account->immagine
 ?>
 
 <div class="profile-shell">
+
+    <!-- PROFILE HEADER -->
     <div class="profile-head">
         <div class="profile-avatar-wrap">
             <img src="<?= Html::encode($imageUrl) ?>" class="profile-avatar" alt="<?= Html::encode($account->nome . ' ' . $account->cognome) ?>">
@@ -18,44 +21,49 @@ $imageUrl = $account->immagine
             <h1><?= Html::encode($account->nome . ' ' . $account->cognome) ?></h1>
             <p>@<?= Html::encode($account->username) ?></p>
             <span class="profile-role"><?= Html::encode($account->ruolo) ?></span>
-            
         </div>
     </div>
 
+    <!-- GRID -->
     <div class="profile-grid">
+
+        <!-- DATI ACCOUNT -->
         <section class="profile-card">
             <h2>Dati account</h2>
+
             <div class="info-row">
                 <span>Email</span>
                 <strong><?= Html::encode($account->email ?: '-') ?></strong>
-
-                 <span>Nome:</span>
-            <strong><?= Html::encode($account->nome) ?></strong>
-            
-            <span>Cgnome:</span>
-            <strong><?= Html::encode($account->cognome) ?></strong>
-           
-            <?php if($account->approvazione) :?>
-            <span>Autorizzato:</span>
-            <strong><?= Html::encode('Si') ?></strong>
-        <?php else: ?>
-             <span>Autorizzato:</span>
-            <strong><?= Html::encode('No') ?></strong>
-            <?php endif;?>
             </div>
-           
+
+            <div class="info-row">
+                <span>Nome</span>
+                <strong><?= Html::encode($account->nome ?: '-') ?></strong>
+            </div>
+
+            <div class="info-row">
+                <span>Cognome</span>
+                <strong><?= Html::encode($account->cognome ?: '-') ?></strong>
+            </div>
+
+            <div class="info-row">
+                <span>Autorizzato</span>
+                <?php if ($account->approvazione): ?>
+                    <strong class="status-badge status-ok">Sì</strong>
+                <?php else: ?>
+                    <strong class="status-badge status-no">No</strong>
+                <?php endif; ?>
+            </div>
+
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
                 <div class="info-row">
                     <span>Partita IVA</span>
                     <strong><?= Html::encode($account->partita_iva ?: '-') ?></strong>
                 </div>
             <?php endif; ?>
-
-            
         </section>
 
-     
-
+        <!-- AZIONI RAPIDE -->
         <section class="profile-card actions-card">
             <h2>Azioni rapide</h2>
 
@@ -63,40 +71,47 @@ $imageUrl = $account->immagine
                 'action' => ['site/modify-image'],
                 'options' => ['enctype' => 'multipart/form-data', 'id' => 'form-image'],
             ]); ?>
-
+            <br>
             <?= $form->field($account, 'immagine')->fileInput([
                 'accept' => '.jpg,.jpeg,.png,.webp',
                 'id' => 'upload-img',
                 'style' => 'display:none',
             ])->label(false) ?>
-
+  <br>
             <?= Html::button('Modifica immagine', [
                 'class' => 'profile-btn profile-btn-primary',
                 'id' => 'btn-change-image',
                 'type' => 'button',
             ]) ?>
-            <small class="text-muted d-block mb-2">Formati supportati: JPG, PNG, WEBP. Dimensione massima: 5 MB.</small>
+              <br>
+            <small class="text-muted d-block mb-2">Formati supportati: JPG, PNG, WEBP. Max 5 MB.</small>
 
-            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost','style'=>'gap:20px;']) ?>
-          
-            
+            <?= Html::a('Modifica email', ['site/modify-email'], ['class' => 'profile-btn profile-btn-ghost']) ?>
+             <br>
             <?= Html::a('Modifica password', ['site/mail'], ['class' => 'profile-btn profile-btn-ghost']) ?>
 
             <?php if (!$account->is_totp_enabled): ?>
+               <br>
                 <?= Html::a('Attiva 2FA', ['site/enable-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
-            <?php else: ?>
+              <br>
+                <?php else: ?>
                 <?= Html::a('Disattiva 2FA', ['site/verify-2fa'], ['class' => 'profile-btn profile-btn-warning']) ?>
-            <?php endif; ?>
+            <br>
+                <?php endif; ?>
 
             <?php if (Yii::$app->user->identity->ruolo === 'cliente'): ?>
+              
                 <?= Html::a('Modifica Partita IVA', ['site/modify-iva'], ['class' => 'profile-btn profile-btn-ghost']) ?>
             <?php endif; ?>
 
             <?php ActiveForm::end(); ?>
+              <br>
         </section>
+
     </div>
 </div>
 
+<!-- SCRIPT UPLOAD IMMAGINE -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('btn-change-image');
@@ -111,9 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     fileInput.addEventListener('change', function () {
-        if (!fileInput.files || fileInput.files.length === 0) {
-            return;
-        }
+        if (!fileInput.files || fileInput.files.length === 0) return;
 
         const file = fileInput.files[0];
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -126,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (file.size > maxSize) {
-            alert('File troppo grande. Dimensione massima: 5 MB.');
+            alert('File troppo grande. Max 5 MB.');
             fileInput.value = '';
             return;
         }
@@ -136,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+<!-- STILE -->
 <style>
 .profile-shell {
     --bg-a: #edf6ff;
@@ -157,13 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
     border: 1px solid #c9deef;
     font-family: "Segoe UI", "Helvetica Neue", sans-serif;
 }
-
-.profile-grid{
-    gap:10px;
-    display:grid;
-    grid-template-columns: 2fr;
-}
-
 
 .profile-head {
     display: flex;
@@ -188,14 +195,12 @@ document.addEventListener('DOMContentLoaded', function () {
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
-    display: block;
 }
 
 .profile-head-text h1 {
     margin: 0;
     color: var(--ink);
     font-size: 28px;
-    letter-spacing: 0.2px;
 }
 
 .profile-head-text p {
@@ -237,9 +242,8 @@ document.addEventListener('DOMContentLoaded', function () {
 .info-row {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
     align-items: center;
-    padding: 12px 0;
+    padding: 10px 0;
     border-top: 1px dashed #d7e7f7;
 }
 
@@ -257,7 +261,6 @@ document.addEventListener('DOMContentLoaded', function () {
     color: var(--ink);
     font-size: 15px;
     font-weight: 600;
-    text-align: right;
 }
 
 .actions-card {
@@ -272,7 +275,6 @@ document.addEventListener('DOMContentLoaded', function () {
     text-align: center;
     padding: 10px 14px;
     border-radius: 10px;
-    text-decoration: none;
     font-weight: 600;
     border: 1px solid transparent;
     transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
@@ -281,17 +283,11 @@ document.addEventListener('DOMContentLoaded', function () {
 .profile-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 20px #1d8ddb1f;
-    text-decoration: none;
 }
 
 .profile-btn-primary {
     background: var(--accent);
     color: #fff;
-}
-
-.profile-btn-primary:hover {
-    color: #fff;
-    filter: brightness(1.02);
 }
 
 .profile-btn-ghost {
@@ -304,6 +300,24 @@ document.addEventListener('DOMContentLoaded', function () {
     background: #fff8e8;
     border-color: #ffd68a;
     color: #8d5e00;
+}
+
+/* BADGE STATO */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.status-ok {
+    background: #e6f7ee;
+    color: #1f7a4d;
+}
+
+.status-no {
+    background: #fdeaea;
+    color: #b42318;
 }
 
 @media (max-width: 820px) {
